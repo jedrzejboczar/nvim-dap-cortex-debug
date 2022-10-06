@@ -3,13 +3,13 @@ local M = {}
 local dap = require('dap')
 local utils = require('dap-cortex-debug.utils')
 local config = require('dap-cortex-debug.config')
-local events = require('dap-cortex-debug.events')
+local listeners = require('dap-cortex-debug.listeners')
 local gdb_server = require('dap-cortex-debug.gdb_server')
 local adapter = require('dap-cortex-debug.adapter')
 
 function M.setup(opts)
     config.setup(opts)
-    events.setup()
+    listeners.setup()
 
     -- TODO: is this necessary?
     dap.defaults['cortex-debug'].auto_continue_if_many_stopped = false
