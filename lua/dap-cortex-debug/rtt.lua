@@ -25,7 +25,7 @@ local function try_connect(opts)
             opts.retries = (opts.retries or 0) + 1
             if opts.retries <= opts.max_retries then
                 vim.defer_fn(function()
-                    M.try_connect(opts)
+                    try_connect(opts)
                 end, opts.period)
             elseif opts.on_error then
                 opts.on_error(opts.retries - 1)
@@ -43,7 +43,7 @@ function M.connect(port, channel, on_connect)
         period = 250,
         on_error = function()
             local msg = string.format('RTT: could not connect on port %d channel %d', port, channel)
-            vim.notify(msg, vim.log.levels.ERROR)
+            vim.schedule_wrap(vim.notify)(msg, vim.log.levels.ERROR)
         end,
         on_success = function(client)
             -- See: cortex-debug/src/frontend/swo/sources/socket.ts:123

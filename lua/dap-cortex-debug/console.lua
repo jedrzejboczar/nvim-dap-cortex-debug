@@ -9,18 +9,20 @@ function Console:new(opts)
     }, self)
 end
 
-function Console:rename(name)
-    self.name = name
-    if self.buf and vim.api.nvim_buf_is_valid(self.buf) then
-        vim.api.nvim_buf_set_name(old, string.format('[%s]', self.name))
-    end
-end
-
 local function maybe_shedule(fn)
     if vim.in_fast_event() then
         fn = vim.schedule_wrap(fn)
     end
     fn()
+end
+
+function Console:rename(name)
+    maybe_shedule(function()
+        self.name = name
+        if self.buf and vim.api.nvim_buf_is_valid(self.buf) then
+            vim.api.nvim_buf_set_name(self.buf, string.format('[%s]', self.name))
+        end
+    end)
 end
 
 function Console:show_info(str, newline)
@@ -137,7 +139,7 @@ function Console:append(chunk, scroll)
         self:_ensure_term_buf()
         chunk = chunk:gsub('\n', '\r\n')  -- fix newlines
         pcall(vim.api.nvim_chan_send, self.term, chunk)
-        if scroll then
+        if scroll and vim.api.nvim_get_current_buf() ~= self.buf then
             self:scroll()
         end
     end)

@@ -6,13 +6,17 @@ local config = require('dap-cortex-debug.config')
 local events = require('dap-cortex-debug.events')
 local gdb_server = require('dap-cortex-debug.gdb_server')
 
+local function path_sanitize(path)
+    return vim.fn.fnamemodify(path, ':p'):gsub('/+', '/'):gsub('/$', '')
+end
+
 local function get_extension_path()
     if config.extension_path and vim.fn.isdirectory(config.extension_path) then
-        return config.extension_path
+        return path_sanitize(config.extension_path)
     end
     local paths = vim.fn.glob(config.extension_path_glob, false, true)
     if paths and paths[1] then
-        return paths[1]
+        return path_sanitize(paths[1])
     end
     utils.warn_once('Missing cortex-debug extension_path')
 end
@@ -20,7 +24,7 @@ end
 local function get_debugadapter_path(extension_path)
     -- TODO: does this solve Windows compatibility?
     local paths = vim.fn.glob(extension_path .. '/dist/debugadapter.js', true, true)
-    return paths and paths[1]
+    return paths and path_sanitize(paths[1])
 end
 
 local function lib_extension()
@@ -52,6 +56,7 @@ end
 function M.setup(opts)
     config.setup(opts)
     events.setup()
+
 
     -- TODO: is this necessary?
     dap.defaults['cortex-debug'].auto_continue_if_many_stopped = false
@@ -101,6 +106,7 @@ function M.rtt_config(channels)
     return {
         enabled = #channels > 0,
         address = 'auto',
+        rtt_start_retry = 1000,
         decoders = vim.tbl_map(function(channel)
             local port = channel
             local typ = 'console'
@@ -129,9 +135,11 @@ function M.launch_config(opts, overrides)
         postAttachCommands = {},
 
         serverpath = 'JLinkGDBServerCLExe',
-        gddPath = 'arm-none-eabi-gdb',
-        armToolchainPath = '/usr/arm-none-eabi/bin',
+        gdbPath = 'arm-none-eabi-gdb',
+        armToolchainPath = '/usr/bin',
         toolchainPrefix = 'arm-none-eabi',
+
+        runToEntryPoint = 'main',
 
         -- Use dap events to spawn console
         gdbServerConsolePort = gdb_server.gdbServerConsolePort(),
