@@ -20,11 +20,8 @@ M.console = Console:new { name = 'gdb-server' }
 
 M.auto_open = false
 
--- TODO: find free port? do this before launch and pass in config to adapter?
-function M.connect(port)
-    port = port or 55878
-
-    M.console.server = create_server('0.0.0.0', port, function(sock)
+function M.start(port)
+    M.console.server = create_server('127.0.0.1', port, function(sock)
         M.console:clear()
         -- Append output from the server to the terminal window
         sock:read_start(function(err, chunk)
@@ -37,26 +34,10 @@ function M.connect(port)
             end
         end)
     end)
-
-    return port
 end
 
 function M.open()
     M.console:open()
-end
-
-function M.gdbServerConsolePort(port)
-    return function()
-        return coroutine.create(function(dap_run_co)
-            vim.schedule(function()
-                port = M.connect(port)
-                if M.auto_open then
-                    M.open()
-                end
-                coroutine.resume(dap_run_co, port)
-            end)
-        end)
-    end
 end
 
 return M
