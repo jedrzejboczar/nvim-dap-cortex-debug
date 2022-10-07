@@ -39,36 +39,39 @@ local function veirify_jlink_config(c)
         c.interface = 'swd'
     end
 
-    assert(c.device, 'Device Identifier is required for J-Link configurations. Please see https://www.segger.com/downloads/supported-devices.php for supported devices')
+    utils.assert(c.device, 'Device Identifier is required for J-Link configurations. \z
+        Please see https://www.segger.com/downloads/supported-devices.php for supported devices')
 
-    assert(
+    utils.assert(
         not (vim.tbl_contains({'jtag', 'cjtag'}, c.interface) and c.swoConfig.enabled and c.swoConfig.source == 'probe'),
         'SWO Decoding cannot be performed through the J-Link Probe in JTAG mode.'
     )
 
     local count = 0
     for _, decoder in ipairs(c.rttConfig.decoders) do
-        assert(
-            decoder.port >= 0 and decoder.port <= 15,
-            string.format('Invalid RTT port %s, must be between 0 and 15.', decoder.port)
-        )
+        utils.assert(decoder.port >= 0 and decoder.port <= 15,
+            'Invalid RTT port %s, must be between 0 and 15.', decoder.port)
         count = count + 1
     end
 
-    assert(count < 2, 'JLink RTT only allows a single RTT port/channel per debugging session but got ' .. count)
+    utils.assert(count < 2, 'JLink RTT only allows a single RTT port/channel per debugging session but got %s', count)
 
     if c.rtos then
-        -- TODO: allow arbitrary paths
-        assert(
-            valid_rtos.jlink[c.rtos],
-            string.format('Invalid RTOS for %s, available: %s', c.servertype, table.concat(valid_rtos.jlink, ', '))
-        )
-
-        if not vim.fn.filereadable(c.rtos) then
-            utils.warn('jlink RTOS plugin file not readable: ' .. c.rtos)
+        local valid = valid_rtos.jlink
+        if valid[c.rtos] then
+            c.rtos = string.format('GDBServer/RTOSPlugin_%s.%s', c.rtos, utils.get_lib_ext())
+        else
+            if vim.fn.fnamemodify(c.rtos, ':e') == '' then
+                c.rtos = c.rtos .. '.' .. utils.get_lib_ext()
+            end
+            utils.assert(
+                vim.fn.filereadable(c.rtos),
+                'JLink RTOS plugin file not found: "%s". Supported RTOS values: %s. Or use full path to JLink plugin.',
+                c.rtos,
+                table.concat(valid, ', ')
+            )
         end
     end
-
 
     c.rtos = string.format('GDBServer/RTOSPlugin_%s.%s', c.rtos, utils.get_lib_ext())
 
@@ -76,14 +79,12 @@ local function veirify_jlink_config(c)
 end
 
 local function veirify_openocd_config(c)
-    assert(c.configFiles and #c.configFiles > 0, 'At least one OpenOCD Configuration File must be specified. ')
+    utils.assert(c.configFiles and #c.configFiles > 0, 'At least one OpenOCD Configuration File must be specified.')
     c.searchDir = c.searchDir or {}
 
     if c.rtos then
-        assert(
-            valid_rtos.jlink[c.rtos],
-            string.format('Invalid RTOS for %s, available: %s', c.servertype, table.concat(valid_rtos.jlink, ', '))
-        )
+        local valid = valid_rtos.openocd
+        utils.assert(valid[c.rtos], 'Invalid RTOS for %s, available: %s', c.servertype, table.concat(valid, ', '))
     end
 
     return c
@@ -124,8 +125,8 @@ local function verify_config(c)
     -- There is some code that makes sure to resolve deprecated options but we won't support this.
     local assert_deprecated = function(old, new)
         local old_path = vim.split(old, '.', { plain = true })
-        local msg = string.format('"%s" is not supported, use "%s"', old, new)
-        assert(vim.tbl_get(c, unpack(old_path)) == nil, msg)
+        local old_value = vim.tbl_get(c, unpack(old_path))
+        utils.assert(old_value == nil, '"%s" is not supported, use "%s"', old, new)
     end
     assert_deprecated('debugger_args', 'debuggerArgs')
     assert_deprecated('swoConfig.ports', 'swoConfig.decoders')
@@ -169,12 +170,7 @@ local function verify_config(c)
         utils.warn_once('toolchainPrefix should not end with "-", e.g. "arm-none-eabi"')
     end
 
-    if c.rtos and valid_rtos[c.servertype] then
-        local valid = valid_rtos[c.servertype]
-        assert(valid[c.rtos], string.format('Invalid RTOS for %s, available: %s', c.servertype, table.concat(valid, ', ')))
-    end
-
-    local verify = assert(verifiers[c.servertype], 'Unsupported servertype: ' .. c.servertype)
+    local verify = utils.assert(verifiers[c.servertype], 'Unsupported servertype: %s', c.servertype)
     c = verify(c)
 
     return c
@@ -183,7 +179,6 @@ end
 ---Debug adapter configuration in functional variant; assignable to dap.adapters[...]
 ---@param callback function
 ---@param launch_config table
----@return function
 local function adapter_fn(callback, launch_config)
     -- Currently it's not strictly necessary to use functional variant, but we'll see...
     local extension_path = launch_config.extensionPath or get_extension_path()
@@ -199,7 +194,7 @@ local function adapter_fn(callback, launch_config)
             if ok then
                 conf = conf_or_err
             else
-                utils.error('invalid launch config: %s', conf_or_err)
+                utils.error('Launch config error: %s', conf_or_err)
                 return false
             end
 

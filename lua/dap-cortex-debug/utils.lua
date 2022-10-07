@@ -2,6 +2,10 @@ local M = {}
 
 local config = require('dap-cortex-debug.config')
 
+---Wrap a function with given values for N first arguments
+---@param fn function
+---@param ... any
+---@return function
 function M.bind(fn, ...)
     local args = { ... }
     return function(...)
@@ -37,6 +41,19 @@ M.warn = logger(vim.log.levels.WARN, 'notify')
 M.warn_once = logger(vim.log.levels.WARN, 'notify_once')
 M.error = logger(vim.log.levels.ERROR, 'notify')
 M.error_once = logger(vim.log.levels.ERROR, 'notify_once')
+
+---Assert a condition or raise an error with formatted message
+---@param val any Value treated as assertion condition
+---@param err string Error message with optional format string placeholders
+---@param ... any Arguments to the format string
+---@return any Value if it was true-ish
+function M.assert(val, err, ...)
+    if not val then
+        -- Use level 2 to show the error at caller location
+        error(string.format(err, ...), 2)
+    end
+    return val
+end
 
 ---Make path absolute, remove repeated/trailing slashes
 ---@param path string
