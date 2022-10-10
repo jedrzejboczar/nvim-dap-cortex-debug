@@ -70,6 +70,20 @@ function M.setup()
     before('event_custom-event-session-reset')
 
     before('initialize', function(_session, _err, _response, _payload) end)
+
+    -- HACK: work around cortex-debug's workaround for vscode's bug...
+    -- Cortex-debug includes a workaround for some bug in VS code, which causes cortex-debug
+    -- to send the first frame/thread as "cortex-debug-dummy". It is solved by runToEntryPoint
+    -- which will result in a breakpoint stop and then we will get correct stack trace. But we
+    -- need to re-request threads, and force nvim-dap to jump to the new frame received (it
+    -- won't jump because it sees that session.stopped_thread_id ~= nil).
+    after('stackTrace', function(session, err, response, payload)
+        if vim.tbl_get(response, 'stackFrames', 1, 'name') == 'cortex-debug-dummy' then
+            session.stopped_thread_id = nil
+            session:update_threads()
+        end
+    end)
+
 end
 
 return M
