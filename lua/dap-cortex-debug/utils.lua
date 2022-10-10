@@ -103,9 +103,9 @@ end
 ---Determine system platform
 ---@return 'darwin'|'windows'|'linux'
 function M.get_platform()
-    if vim.fn.has('macos') then
+    if vim.fn.has('macos') == 1 then
         return 'darwin'
-    elseif vim.fn.has('win32') or vim.fn.has('win64') then
+    elseif vim.fn.has('win32') == 1 or vim.fn.has('win64') == 1 then
         return 'windows'
     else
         return 'linux'
