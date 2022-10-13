@@ -59,36 +59,18 @@ end
 ---@param path string
 ---@return string
 function M.path_sanitize(path)
-    return vim.fn.fnamemodify(path, ':p'):gsub('/+', '/'):gsub('/$', '')
+    path = vim.fn.fnamemodify(path, ':p'):gsub('/+', '/'):gsub('/$', '')
+    return path
 end
 
----Check if given port is available
----@param port integer
----@return boolean
-function M.try_port_listen(port)
-    local tcp = assert(vim.loop.new_tcp())
-    local ok = pcall(function ()
-        assert(tcp:bind('127.0.0.1', port))
-        assert(tcp:listen(1, function() end))
-    end)
-    tcp:shutdown()
-    tcp:close()
-    return ok
-end
-
----Find a free port
----@param preferred? integer Try to use this port if possible
----@return integer Port that is free for use
-function M.get_free_port(preferred)
-    if preferred and M.try_port_listen(preferred) then
-        return preferred
+---Run `fn`, scheduling it if called in fast event
+---@param fn function
+function M.call_api(fn)
+    if vim.in_fast_event() then
+        vim.schedule(fn)
+    else
+        fn()
     end
-    local tcp = vim.loop.new_tcp()
-    tcp:bind('127.0.0.1', 0)
-    local port = tcp:getsockname().port
-    tcp:shutdown()
-    tcp:close()
-    return port
 end
 
 ---Create a callback that will resume currently running coroutine

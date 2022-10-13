@@ -1,9 +1,8 @@
 local M = {}
 
 local dap = require('dap')
-local config = require('dap-cortex-debug.config')
-local rtt = require('dap-cortex-debug.rtt')
-local gdb_server = require('dap-cortex-debug.gdb_server')
+local tcp = require('dap-cortex-debug.tcp')
+local consoles = require('dap-cortex-debug.consoles')
 local utils = require('dap-cortex-debug.utils')
 
 local PLUGIN = 'cortex-debug'
@@ -11,7 +10,6 @@ M.debug = true
 
 local function set_listener(when, name, handler)
     handler = handler or function() end
-    local is_event = vim.startswith(name, 'event_')
 
     local log_handler = function(_session, ...)
         local args = {...}
@@ -42,7 +40,7 @@ function M.setup()
 
     before('event_custom-event-ports-done')
 
-    before('event_custom-event-popup', function(session, body)
+    before('event_custom-event-popup', function(_session, body)
         local msg = body.info and body.info.message or '<NIL>'
         local level = ({
             warning = vim.log.levels.WARN,
@@ -54,13 +52,24 @@ function M.setup()
     before('event_custom-stop')
     before('event_custom-continued')
     before('event_swo-configure')
+
     before('event_rtt-configure', function(session, body)
         assert(body and body.type == 'socket')
         assert(body.decoder.type == 'console')
-        rtt.connect(body.decoder.tcpPort, body.decoder.port, function()
+
+        consoles.rtt_connect(body.decoder.port, body.decoder.tcpPort, function(client)
+            -- See: cortex-debug/src/frontend/swo/sources/socket.ts:123
+            -- When the TCP connection to the RTT port is established, send config commands
+            -- within 100ms to configure the RTT channel.  See
+            -- https://wiki.segger.com/RTT#SEGGER_TELNET_Config_String for more information
+            -- on the config string format.
+            if session.config.servertype == 'jlink' then
+                client:write(string.format('$$SEGGER_TELNET_ConfigStr=RTTCh;%d$$', body.decoder.port))
+            end
             session:request('rtt-poll')
         end)
     end)
+
     before('event_record-event')
     before('event_custom-event-open-disassembly')
     before('event_custom-event-post-start-server')
@@ -77,7 +86,7 @@ function M.setup()
     -- which will result in a breakpoint stop and then we will get correct stack trace. But we
     -- need to re-request threads, and force nvim-dap to jump to the new frame received (it
     -- won't jump because it sees that session.stopped_thread_id ~= nil).
-    after('stackTrace', function(session, err, response, payload)
+    after('stackTrace', function(session, _err, response, _payload)
         if vim.tbl_get(response, 'stackFrames', 1, 'name') == 'cortex-debug-dummy' then
             session.stopped_thread_id = nil
             session:update_threads()

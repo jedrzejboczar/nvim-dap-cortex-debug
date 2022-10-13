@@ -1,10 +1,8 @@
 local M = {}
 
 local dap = require('dap')
-local utils = require('dap-cortex-debug.utils')
 local config = require('dap-cortex-debug.config')
 local listeners = require('dap-cortex-debug.listeners')
-local gdb_server = require('dap-cortex-debug.gdb_server')
 local adapter = require('dap-cortex-debug.adapter')
 
 function M.setup(opts)
@@ -18,6 +16,13 @@ function M.setup(opts)
     dap.adapters['cortex-debug'] = adapter
 end
 
+---@class RTTChannel
+---@field port number
+---@field type "console"|"binary"
+
+---Generate basic RTT configuration with decoders for given channels
+---@param channels? number|number[]|RTTChannel[] Channels to use
+---@return table Configuration assignable to "rttConfig" field
 function M.rtt_config(channels)
     if type(channels) ~= 'table' then
         channels = { channels }
@@ -41,16 +46,45 @@ function M.rtt_config(channels)
     }
 end
 
+function M.jlink_config(overrides)
+    local defaults = {
+        type = 'cortex-debug',
+        request = 'attach',
+        servertype = 'jlink',
+        interface = 'jtag',
+        serverpath = 'JLinkGDBServerCLExe',
+        gdbPath = 'arm-none-eabi-gdb',
+        toolchainPath = '/usr/bin',
+        toolchainPrefix = 'arm-none-eabi',
+        runToEntryPoint = 'main',
+        swoConfig = { enabled = false },
+        rttConfig = M.rtt_config(),
+    }
+    return vim.tbl_deep_extend('force', defaults, overrides)
+end
+
+function M.openocd_config(overrides)
+    local defaults = {
+        type = 'cortex-debug',
+        request = 'launch',
+        servertype = 'openocd',
+        serverpath = 'openocd',
+        gdbPath = 'arm-none-eabi-gdb',
+        toolchainPath = '/usr/bin',
+        toolchainPrefix = 'arm-none-eabi',
+        runToEntryPoint = 'main',
+        swoConfig = { enabled = false },
+        rttConfig = M.rtt_config(),
+    }
+    return vim.tbl_deep_extend('force', defaults, overrides)
+end
+
 function M.launch_config(opts, overrides)
     local defaults = {
         type = 'cortex-debug',
         request = 'attach',
         servertype = 'jlink',
         interface = 'jtag',
-
-        -- we get error if not provided
-        preAttachCommands = {},
-        postAttachCommands = {},
 
         serverpath = 'JLinkGDBServerCLExe',
         gdbPath = 'arm-none-eabi-gdb',

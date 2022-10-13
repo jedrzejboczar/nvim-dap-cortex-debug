@@ -1,5 +1,6 @@
 local config = require('dap-cortex-debug.config')
-local gdb_server = require('dap-cortex-debug.gdb_server')
+local tcp = require('dap-cortex-debug.tcp')
+local consoles = require('dap-cortex-debug.consoles')
 local utils = require('dap-cortex-debug.utils')
 
 local function get_extension_path()
@@ -23,16 +24,6 @@ local valid_rtos = {
     jlink = { 'Azure', 'ChibiOS', 'embOS', 'FreeRTOS', 'NuttX', 'Zephyr' },
     openocd = { 'ChibiOS', 'eCos', 'embKernel', 'FreeRTOS', 'mqx', 'nuttx', 'ThreadX', 'uCOS-III', 'auto' },
 }
-
-local function resolve_rtos(conf)
-    if valid[conf.servertype] then
-        -- TODO: openocd support
-        if conf.servertype == 'jlink' then
-            return string.format('GDBServer/RTOSPlugin_%s.%s', conf.rtos, utils.get_lib_ext())
-        end
-    end
-    utils.warn('Could not resolve RTOS "%s"', conf.rtos)
-end
 
 local function veirify_jlink_config(c)
     if not c.interface then
@@ -184,6 +175,9 @@ local function adapter_fn(callback, launch_config)
     local extension_path = launch_config.extensionPath or get_extension_path()
     launch_config.extensionPath = extension_path
 
+    -- Ensure GDB server console has been started
+    local port = consoles.gdb_server_console().port
+
     callback {
         type = 'executable',
         command = 'node',
@@ -198,9 +192,7 @@ local function adapter_fn(callback, launch_config)
                 return false
             end
 
-            -- Start GDB server console before we launch debug adapter
-            conf.gdbServerConsolePort = utils.get_free_port(55878)
-            gdb_server.start(conf.gdbServerConsolePort)
+            conf.gdbServerConsolePort = port
 
             on_config(conf)
         end
