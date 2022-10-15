@@ -18,7 +18,7 @@ local gdb_server_console = {
     port = nil,
 }
 
-local function gdb_server_console_term()
+function M.gdb_server_console_term()
     return Terminal.get_or_new {
         set_win = Terminal.temporary_win,
         uri = [[cortex-debug://gdb-server-console]],
@@ -43,7 +43,8 @@ function M.gdb_server_console()
                 local sock_info = sock:getsockname()
                 -- Cannot create terminal in callback so do wait for loop
                 vim.schedule(function()
-                    local term = gdb_server_console_term()
+                    local term = M.gdb_server_console_term()
+                    term:scroll()
                     term:send_line(bold(string.format('Connected from %s:%d', sock_info.ip, sock_info.port)))
 
                     sock:read_start(function(err, data)
@@ -80,7 +81,7 @@ local function open_in_split(opts)
 
 end
 
-local function rtt_term(channel)
+function M.rtt_term(channel)
     return Terminal.get_or_new {
         uri = string.format([[cortex-debug://rtt:%d]], channel),
         -- set_win = open_in_split { size = 22 },
@@ -90,7 +91,7 @@ end
 
 function M.rtt_connect(channel, tcp_port, on_connected)
     local on_connect = function(client)
-        local term = rtt_term(channel)
+        local term = M.rtt_term(channel)
         term:send_line(bold('Connected on port ' .. tcp_port))
 
         client:read_start(function(err, data)
@@ -106,7 +107,7 @@ function M.rtt_connect(channel, tcp_port, on_connected)
             end
         end)
 
-        on_connected(client)
+        on_connected(client, term)
     end
 
     tcp.connect {

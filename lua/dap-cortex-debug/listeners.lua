@@ -14,8 +14,7 @@ local function set_listener(when, name, handler)
     local log_handler = function(_session, ...)
         local args = {...}
         if debug then
-            local msg = string.format('cortex-debug.%s.%s: %s', when, name, vim.inspect(args))
-            vim.notify(msg, vim.log.levels.DEBUG)
+            utils.debug('cortex-debug.%s.%s: %s', when, name, vim.inspect(args))
         end
     end
 
@@ -57,7 +56,7 @@ function M.setup()
         assert(body and body.type == 'socket')
         assert(body.decoder.type == 'console')
 
-        consoles.rtt_connect(body.decoder.port, body.decoder.tcpPort, function(client)
+        consoles.rtt_connect(body.decoder.port, body.decoder.tcpPort, function(client, term)
             -- See: cortex-debug/src/frontend/swo/sources/socket.ts:123
             -- When the TCP connection to the RTT port is established, send config commands
             -- within 100ms to configure the RTT channel.  See
@@ -66,7 +65,12 @@ function M.setup()
             if session.config.servertype == 'jlink' then
                 client:write(string.format('$$SEGGER_TELNET_ConfigStr=RTTCh;%d$$', body.decoder.port))
             end
+
+            -- Open the terminal in dapui if dapui has been opened.
+            require('dapui.elements.rtt').on_rtt_connect(body.decoder.port)
+
             session:request('rtt-poll')
+            term:scroll()
         end)
     end)
 
@@ -92,7 +96,6 @@ function M.setup()
             session:update_threads()
         end
     end)
-
 end
 
 return M
