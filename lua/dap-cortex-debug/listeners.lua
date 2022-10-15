@@ -96,6 +96,46 @@ function M.setup()
             session:update_threads()
         end
     end)
+
+    -- Cortex-debug sends a tooltips (multi-line info) under variable.type, e.g.
+    --   SystemCoreClock undefined SystemCoreClock;
+    --   dec: 168000000
+    --   hex: 0x0a037a00
+    --   oct: 001200675000
+    --   bin: 00001010 00000011 01111010 00000000 = 168000000
+    -- where: "SystemCoreClock {TYPE} = 168000000".
+    -- Try to extract actual type from the first line, and store the whole string under _tooltip.
+    -- TODO: find a way to use this tooltip on hover.
+    local function fix_variable_type(var)
+        if not var.type then return end
+
+        var._tooltip = var.type
+        local line = vim.split(var.type, '\n', { plain = true, trimempty = true })[1]
+
+        -- Remove trailing semicolon
+        if vim.endswith(line, ';') then
+            line = line:sub(1, #line - 1)
+        end
+        -- Remove variable name
+        local tokens = vim.tbl_filter(function(token)
+            return token ~= var.name
+        end, vim.split(line, '%s+'))
+
+        -- Remove redundant registers info
+        if tokens[1] == 'Register:' and vim.endswith(tokens[2], var.name) then
+            tokens = vim.list_slice(tokens, 3)
+        end
+
+        var.type = table.concat(tokens, ' ')
+    end
+
+    before('variables', function(_session, _err, response, _payload)
+        if not response then return end
+        for _, var in ipairs(response.variables or {}) do
+            fix_variable_type(var)
+        end
+
+    end)
 end
 
 return M
