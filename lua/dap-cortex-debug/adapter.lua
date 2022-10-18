@@ -3,10 +3,7 @@ local consoles = require('dap-cortex-debug.consoles')
 local utils = require('dap-cortex-debug.utils')
 
 local function get_extension_path()
-    if config.extension_path and vim.fn.isdirectory(config.extension_path) then
-        return utils.path_sanitize(config.extension_path)
-    end
-    local paths = vim.fn.glob(config.extension_path_glob, false, true)
+    local paths = vim.fn.glob(config.extension_path, false, true)
     if paths and paths[1] then
         return utils.path_sanitize(paths[1])
     end

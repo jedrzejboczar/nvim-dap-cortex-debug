@@ -7,8 +7,7 @@ local function defaults()
     -- stylua: ignore
     return {
         debug = false,
-        extension_path = nil,
-        extension_path_glob = '~/.vscode/extensions/marus25.cortex-debug-*/',
+        extension_path = '~/.vscode/extensions/marus25.cortex-debug-*/',
         lib_extension = nil, -- tries auto-detecting
     }
 end
