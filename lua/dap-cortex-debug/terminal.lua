@@ -3,8 +3,9 @@ local utils = require('dap-cortex-debug.utils')
 ---@alias TerminalSetWin fun(buf: number): number, function?
 
 ---@class CDTerminalOpts
----@field set_win TerminalSetWin Assigns terminal buffer to a window, return window and optional callback to call when terminal is ready.
----@field uri CortexDebugUri
+---Assigns terminal buffer to a window, return window and optional callback to call when terminal is ready.
+---@field set_win TerminalSetWin
+---@field uri string
 ---@field on_input? fun(term: CDTerminal, data: string)
 ---@field on_delete? fun(term: CDTerminal)
 ---@field scroll_on_open? boolean Scroll to end when opening with new output (default true)
@@ -73,7 +74,7 @@ Terminal.display = {
     },
 }
 
----@type { [CortexDebugUri]: CDTerminal }
+---@type { [string]: CDTerminal }
 local terminals = {}
 
 ---Create new terminal object with its buffer. This needs to open a window, at least temporarily.
@@ -116,7 +117,7 @@ function Terminal:delete()
 end
 
 ---Set terminal URI
----@param uri CortexDebugUri
+---@param uri string
 function Terminal:set_uri(uri)
     if terminals[uri] then
         utils.error('Terminal with given URI already exists: "%s"', uri)
@@ -248,5 +249,3 @@ function Terminal.temporary_win(buf)
 end
 
 return Terminal
-
-
