@@ -1,7 +1,6 @@
 local M = {}
 
 local dap = require('dap')
-local tcp = require('dap-cortex-debug.tcp')
 local consoles = require('dap-cortex-debug.consoles')
 local utils = require('dap-cortex-debug.utils')
 
@@ -12,7 +11,7 @@ local function set_listener(when, name, handler)
     handler = handler or function() end
 
     local log_handler = function(_session, ...)
-        local args = {...}
+        local args = { ... }
         if debug then
             utils.debug('cortex-debug.%s.%s: %s', when, name, vim.inspect(args))
         end
@@ -107,7 +106,9 @@ function M.setup()
     -- Try to extract actual type from the first line, and store the whole string under _tooltip.
     -- TODO: find a way to use this tooltip on hover.
     local function fix_variable_type(var)
-        if not var.type then return end
+        if not var.type then
+            return
+        end
 
         var._tooltip = var.type
         local line = vim.split(var.type, '\n', { plain = true, trimempty = true })[1]
@@ -130,11 +131,12 @@ function M.setup()
     end
 
     before('variables', function(_session, _err, response, _payload)
-        if not response then return end
+        if not response then
+            return
+        end
         for _, var in ipairs(response.variables or {}) do
             fix_variable_type(var)
         end
-
     end)
 end
 

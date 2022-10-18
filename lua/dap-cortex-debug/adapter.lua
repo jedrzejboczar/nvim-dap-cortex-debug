@@ -1,5 +1,4 @@
 local config = require('dap-cortex-debug.config')
-local tcp = require('dap-cortex-debug.tcp')
 local consoles = require('dap-cortex-debug.consoles')
 local utils = require('dap-cortex-debug.utils')
 
@@ -30,18 +29,28 @@ local function veirify_jlink_config(c)
         c.interface = 'swd'
     end
 
-    utils.assert(c.device, 'Device Identifier is required for J-Link configurations. \z
-        Please see https://www.segger.com/downloads/supported-devices.php for supported devices')
+    utils.assert(
+        c.device,
+        'Device Identifier is required for J-Link configurations. '
+            .. 'Please see https://www.segger.com/downloads/supported-devices.php for supported devices'
+    )
 
     utils.assert(
-        not (vim.tbl_contains({'jtag', 'cjtag'}, c.interface) and c.swoConfig.enabled and c.swoConfig.source == 'probe'),
+        not (
+                vim.tbl_contains({ 'jtag', 'cjtag' }, c.interface)
+                and c.swoConfig.enabled
+                and c.swoConfig.source == 'probe'
+            ),
         'SWO Decoding cannot be performed through the J-Link Probe in JTAG mode.'
     )
 
     local count = 0
     for _, decoder in ipairs(c.rttConfig.decoders) do
-        utils.assert(decoder.port >= 0 and decoder.port <= 15,
-            'Invalid RTT port %s, must be between 0 and 15.', decoder.port)
+        utils.assert(
+            decoder.port >= 0 and decoder.port <= 15,
+            'Invalid RTT port %s, must be between 0 and 15.',
+            decoder.port
+        )
         count = count + 1
     end
 
@@ -92,14 +101,14 @@ local function sanitize_dev_debug(c)
         parsed = 'parsed',
         both = 'both',
         raw = 'raw',
-        vscode = 'vscode'
+        vscode = 'vscode',
     }
     if type(c.showDevDebugOutput) == 'string' then
         c.showDevDebugOutput = vim.trim(c.showDevDebugOutput:lower())
     end
-    if vim.tbl_contains({false, 'false', '', 'none'}, c.showDevDebugOutput) then
+    if vim.tbl_contains({ false, 'false', '', 'none' }, c.showDevDebugOutput) then
         c.showDevDebugOutput = nil
-    elseif vim.tbl_contains({true, 'true'}, c.showDevDebugOutput) then
+    elseif vim.tbl_contains({ true, 'true' }, c.showDevDebugOutput) then
         c.showDevDebugOutput = modes.raw
     elseif not modes[c.showDevDebugOutput] then
         c.showDevDebugOutput = 'vscode'
@@ -182,7 +191,7 @@ local function adapter_fn(callback, launch_config)
         type = 'executable',
         command = 'node',
         args = { get_debugadapter_path(extension_path) },
-        options = { detached = false, },
+        options = { detached = false },
         enrich_config = function(conf, on_config)
             local ok, conf_or_err = pcall(verify_config, vim.deepcopy(conf))
             if ok then
@@ -195,7 +204,7 @@ local function adapter_fn(callback, launch_config)
             conf.gdbServerConsolePort = port
 
             on_config(conf)
-        end
+        end,
     }
 end
 

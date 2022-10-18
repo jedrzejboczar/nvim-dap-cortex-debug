@@ -12,7 +12,6 @@ local function bold_error(text)
     return Terminal.display.bold .. Terminal.display.fg.red .. text .. Terminal.display.clear
 end
 
-
 local gdb_server_console = {
     server = nil,
     port = nil,
@@ -30,7 +29,7 @@ function M.gdb_server_console_term()
                     server:close()
                 end)
             end
-        end
+        end,
     }
 end
 
@@ -63,7 +62,7 @@ function M.gdb_server_console()
                 utils.error('Could not open gdb server console: %s', err)
                 gdb_server_console.server = nil
                 gdb_server_console.port = nil
-            end
+            end,
         }
     end
     return gdb_server_console
@@ -72,13 +71,12 @@ end
 local function open_in_split(opts)
     return function(buf)
         local win = vim.api.nvim_get_current_win()
-        vim.cmd(table.concat({opts.mods or '', opts.size or '', 'split'}, ' '))
+        vim.cmd(table.concat({ opts.mods or '', opts.size or '', 'split' }, ' '))
         vim.api.nvim_win_set_buf(0, buf)
         if not opts.focus then
             vim.api.nvim_set_current_win(win)
         end
     end
-
 end
 
 function M.rtt_term(channel)

@@ -139,7 +139,7 @@ function Terminal:_create_buf(set_win)
             if self.on_input then
                 self:on_input(data)
             end
-        end
+        end,
     })
     assert(self.term ~= 0)
     if on_ready then
@@ -160,7 +160,7 @@ function Terminal:_create_autocmds()
                     self:scroll()
                 end)
             end
-        end
+        end,
     })
     vim.api.nvim_create_autocmd('BufDelete', {
         group = augroup,
@@ -170,7 +170,7 @@ function Terminal:_create_autocmds()
             if self.on_delete then
                 self:on_delete()
             end
-        end
+        end,
     })
 end
 

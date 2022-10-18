@@ -76,14 +76,13 @@ function M.serve(opts)
     return server
 end
 
-
 ---Check if given port is available
 ---@param port integer
 ---@param host? string
 ---@return boolean
 function M.try_port_listen(port, host)
     local tcp = assert(vim.loop.new_tcp())
-    local ok = pcall(function ()
+    local ok = pcall(function()
         assert(tcp:bind(host or localhost, port))
         assert(tcp:listen(1, function() end))
     end)

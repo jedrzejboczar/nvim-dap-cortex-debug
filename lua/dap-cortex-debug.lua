@@ -79,29 +79,4 @@ function M.openocd_config(overrides)
     return vim.tbl_deep_extend('force', defaults, overrides)
 end
 
-function M.launch_config(opts, overrides)
-    local defaults = {
-        type = 'cortex-debug',
-        request = 'attach',
-        servertype = 'jlink',
-        interface = 'jtag',
-
-        serverpath = 'JLinkGDBServerCLExe',
-        gdbPath = 'arm-none-eabi-gdb',
-        toolchainPath = '/usr/bin',
-        toolchainPrefix = 'arm-none-eabi',
-
-        runToEntryPoint = 'main',
-
-        swoConfig = { enabled = false },
-
-        rttConfig = M.rtt_config(),
-
-    }
-    return vim.tbl_extend('force',
-        vim.tbl_extend('error', defaults, opts or {}),
-        overrides or {}
-    )
-end
-
 return M
