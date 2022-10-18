@@ -70,12 +70,14 @@ end
 
 local function open_in_split(opts)
     return function(buf)
-        local win = vim.api.nvim_get_current_win()
+        local prev_win = vim.api.nvim_get_current_win()
         vim.cmd(table.concat({ opts.mods or '', opts.size or '', 'split' }, ' '))
-        vim.api.nvim_win_set_buf(0, buf)
+        local new_win = vim.api.nvim_get_current_win()
+        vim.api.nvim_win_set_buf(new_win, buf)
         if not opts.focus then
-            vim.api.nvim_set_current_win(win)
+            vim.api.nvim_set_current_win(prev_win)
         end
+        return new_win
     end
 end
 

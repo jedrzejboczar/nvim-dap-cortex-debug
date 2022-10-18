@@ -1,7 +1,9 @@
 local utils = require('dap-cortex-debug.utils')
 
+---@alias TerminalSetWin fun(buf: number): number, function?
+
 ---@class CDTerminalOpts
----@field set_win fun(buf: number): function? Assigns terminal buffer to a window, may return callback to call when terminal is ready
+---@field set_win TerminalSetWin Assigns terminal buffer to a window, return window and optional callback to call when terminal is ready.
 ---@field uri CortexDebugUri
 ---@field on_input? fun(term: CDTerminal, data: string)
 ---@field on_delete? fun(term: CDTerminal)
@@ -132,7 +134,12 @@ end
 function Terminal:_create_buf(set_win)
     self.buf = vim.api.nvim_create_buf(true, true)
     self:set_uri(self.uri)
-    local on_ready = set_win(self.buf)
+
+    local win, on_ready = set_win(self.buf)
+    vim.api.nvim_set_option_value('number', false, { win = win, scope = 'local' })
+    vim.api.nvim_set_option_value('relativenumber', false, { win = win, scope = 'local' })
+    vim.api.nvim_set_option_value('spell', false, { win = win, scope = 'local' })
+
     -- Needs to be stored as &channel doesn't work with buffers created using nvim_open_term
     self.term = vim.api.nvim_open_term(self.buf, {
         on_input = function(_input, _term, _buf, data)
@@ -226,7 +233,7 @@ end
 
 function Terminal.temporary_win(buf)
     local curr_win = vim.api.nvim_get_current_win()
-    local win = vim.api.nvim_open_win(buf, false, {
+    local new_win = vim.api.nvim_open_win(buf, false, {
         relative = 'win',
         win = curr_win,
         width = vim.api.nvim_win_get_width(curr_win),
@@ -235,9 +242,11 @@ function Terminal.temporary_win(buf)
         col = 0,
         style = 'minimal',
     })
-    return function()
-        vim.api.nvim_win_close(win, false)
+    return new_win, function()
+        vim.api.nvim_win_close(new_win, false)
     end
 end
 
 return Terminal
+
+
