@@ -100,7 +100,7 @@ function M.get_lib_ext()
         windows = 'dll',
         linux = 'so',
     }
-    return extensions[M.get_platform()]
+    return config.lib_extension or extensions[M.get_platform()]
 end
 
 return M
