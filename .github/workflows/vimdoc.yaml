@@ -35,6 +35,9 @@ jobs:
           wait-interval: 10
       - uses: actions/checkout@v2
 
+      - name: Crate output direction
+        run: mkdir -p ./doc
+
       - name: panvimdoc
         uses: kdheepak/panvimdoc@main
         with:
