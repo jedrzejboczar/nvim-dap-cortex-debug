@@ -8,7 +8,7 @@ local function defaults()
     return {
         debug = false,
         extension_path = '~/.vscode/extensions/marus25.cortex-debug-*/',
-        lib_extension = nil, -- tries auto-detecting
+        lib_extension = nil,
     }
 end
 
