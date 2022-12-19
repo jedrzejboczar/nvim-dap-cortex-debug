@@ -133,4 +133,21 @@ function M.class(base_cls)
     return cls
 end
 
+--- Returns an iterator over list items grouped in chunks
+---@generic T
+---@param list T[]
+---@param len integer
+---@return function
+function M.chunks(list, len)
+    local head = 1
+    local tail = len
+    return function()
+        if head > #list then return end
+        local chunk = vim.list_slice(list, head, tail)
+        head = head + len
+        tail = tail + len
+        return chunk
+    end
+end
+
 return M

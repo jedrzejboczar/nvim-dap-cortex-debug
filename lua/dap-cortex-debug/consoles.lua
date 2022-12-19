@@ -68,24 +68,11 @@ function M.gdb_server_console()
     return gdb_server_console
 end
 
-local function open_in_split(opts)
-    return function(buf)
-        local prev_win = vim.api.nvim_get_current_win()
-        vim.cmd(table.concat({ opts.mods or '', opts.size or '', 'split' }, ' '))
-        local new_win = vim.api.nvim_get_current_win()
-        vim.api.nvim_win_set_buf(new_win, buf)
-        if not opts.focus then
-            vim.api.nvim_set_current_win(prev_win)
-        end
-        return new_win
-    end
-end
-
 function M.rtt_term(channel)
     return Terminal.get_or_new {
         uri = string.format([[cortex-debug://rtt:%d]], channel),
-        -- set_win = open_in_split { size = 22 },
-        set_win = open_in_split { size = 80, mods = 'vertical' },
+        -- set_win = Terminal.open_in_split { size = 22 },
+        set_win = Terminal.open_in_split { size = 80, mods = 'vertical' },
     }
 end
 

@@ -2,6 +2,7 @@ local M = {}
 
 local dap = require('dap')
 local consoles = require('dap-cortex-debug.consoles')
+local memory = require('dap-cortex-debug.memory')
 local utils = require('dap-cortex-debug.utils')
 
 local PLUGIN = 'cortex-debug'
@@ -137,6 +138,10 @@ function M.setup()
         for _, var in ipairs(response.variables or {}) do
             fix_variable_type(var)
         end
+    end)
+
+    after('event_stopped', function(_session, _body)
+        memory.update()
     end)
 end
 

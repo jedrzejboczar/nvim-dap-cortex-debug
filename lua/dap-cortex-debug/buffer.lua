@@ -119,4 +119,17 @@ function Buffer.temporary_win(buf)
     end
 end
 
+function Buffer.open_in_split(opts)
+    return function(buf)
+        local prev_win = vim.api.nvim_get_current_win()
+        vim.cmd(table.concat({ opts.mods or '', opts.size or '', 'split' }, ' '))
+        local new_win = vim.api.nvim_get_current_win()
+        vim.api.nvim_win_set_buf(new_win, buf)
+        if not opts.focus then
+            vim.api.nvim_set_current_win(prev_win)
+        end
+        return new_win
+    end
+end
+
 return Buffer
