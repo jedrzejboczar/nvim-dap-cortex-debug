@@ -112,4 +112,25 @@ function M.get_lib_ext()
     return config.lib_extension or extensions[M.get_platform()]
 end
 
+--- Create a class that inherits from given class
+---@param base_cls table?
+---@return { _new: fun(cls: table): table }
+function M.class(base_cls)
+    -- New class table and metatable
+    local cls = {}
+    cls.__index = cls
+
+    function cls:_new()
+        return setmetatable({}, cls)
+    end
+
+    -- Inheritance: indexing cls first checks cls due to object's metatable
+    -- and then base_cls due to the metatable of `cls` itself
+    if base_cls then
+        setmetatable(cls, { __index = base_cls })
+    end
+
+    return cls
+end
+
 return M

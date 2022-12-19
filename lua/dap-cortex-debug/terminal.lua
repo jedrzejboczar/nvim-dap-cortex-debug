@@ -1,4 +1,5 @@
 local utils = require('dap-cortex-debug.utils')
+local Buffer = require('dap-cortex-debug.buffer')
 
 ---@alias TerminalSetWin fun(buf: number): number, function?
 
@@ -16,8 +17,7 @@ local utils = require('dap-cortex-debug.utils')
 ---@field on_input? fun(term: CDTerminal, data: string)
 ---@field on_delete? fun(term: CDTerminal)
 ---@field scroll_on_open boolean
-local Terminal = {}
-Terminal.__index = Terminal
+local Terminal = utils.class(Buffer)
 
 local augroup = vim.api.nvim_create_augroup('CortexDebugTerminal', { clear = true })
 
@@ -74,73 +74,26 @@ Terminal.display = {
     },
 }
 
----@type { [string]: CDTerminal }
-local terminals = {}
-
 ---Create new terminal object with its buffer. This needs to open a window, at least temporarily.
 ---Will delete previous terminal with the same URI. `get_or_new` can be used instead.
 ---@param opts CDTerminalOpts
 ---@return CDTerminal
 function Terminal:new(opts)
-    if terminals[opts.uri] then
-        terminals[opts.uri]:delete()
-    end
+    local term = Buffer:new(opts --[[@as CDBufferOpts]], self:_new())
 
-    local term = setmetatable({
-        buf = nil,
-        term = nil,
-        needs_scroll = false,
-        on_input = opts.on_input,
-        on_delete = opts.on_delete,
-        uri = opts.uri,
-        scroll_on_open = vim.F.if_nil(opts.scroll_on_open, true),
-    }, self)
+    term.needs_scroll = false
+    term.on_input = opts.on_input
+    term.scroll_on_open = vim.F.if_nil(opts.scroll_on_open, true)
 
-    term:_create_buf(opts.set_win)
-    term:_create_autocmds()
-
-    terminals[term.uri] = term
-
-    return term
+    return term --[[@as CDTerminal]]
 end
 
-function Terminal.get(uri)
-    return terminals[uri]
-end
-
+-- FIXME: overriding because superclass directly accesses Buffer methods
 function Terminal.get_or_new(opts)
     return Terminal.get(opts.uri) or Terminal:new(opts)
 end
 
-function Terminal:delete()
-    pcall(vim.api.nvim_buf_delete, self.buf, { force = true })
-end
-
----Set terminal URI
----@param uri string
-function Terminal:set_uri(uri)
-    if terminals[uri] then
-        utils.error('Terminal with given URI already exists: "%s"', uri)
-        print('terminals[uri] =', vim.inspect(terminals[uri]))
-        return
-    end
-    -- TODO: set user friendly b:term_title?
-    vim.api.nvim_buf_set_name(self.buf, uri)
-    terminals[self.uri] = nil
-    self.uri = uri
-    terminals[self.uri] = self
-end
-
--- Create terminal buffer
-function Terminal:_create_buf(set_win)
-    self.buf = vim.api.nvim_create_buf(true, true)
-    self:set_uri(self.uri)
-
-    local win, on_ready = set_win(self.buf)
-    vim.api.nvim_set_option_value('number', false, { win = win, scope = 'local' })
-    vim.api.nvim_set_option_value('relativenumber', false, { win = win, scope = 'local' })
-    vim.api.nvim_set_option_value('spell', false, { win = win, scope = 'local' })
-
+function Terminal:_create_buf_final()
     -- Needs to be stored as &channel doesn't work with buffers created using nvim_open_term
     self.term = vim.api.nvim_open_term(self.buf, {
         on_input = function(_input, _term, _buf, data)
@@ -149,14 +102,11 @@ function Terminal:_create_buf(set_win)
             end
         end,
     })
-    assert(self.term ~= 0)
-    if on_ready then
-        on_ready(self)
-    end
 end
 
 -- Set up buffer autocommands
 function Terminal:_create_autocmds()
+    Buffer:_create_autocmds()
     vim.api.nvim_create_autocmd('BufWinEnter', {
         group = augroup,
         buffer = self.buf,
@@ -167,16 +117,6 @@ function Terminal:_create_autocmds()
                 vim.schedule(function()
                     self:scroll()
                 end)
-            end
-        end,
-    })
-    vim.api.nvim_create_autocmd('BufDelete', {
-        group = augroup,
-        buffer = self.buf,
-        callback = function()
-            terminals[self.uri] = nil
-            if self.on_delete then
-                self:on_delete()
             end
         end,
     })
@@ -230,22 +170,6 @@ function Terminal:scroll()
             self.needs_scroll = true
         end
     end)
-end
-
-function Terminal.temporary_win(buf)
-    local curr_win = vim.api.nvim_get_current_win()
-    local new_win = vim.api.nvim_open_win(buf, false, {
-        relative = 'win',
-        win = curr_win,
-        width = vim.api.nvim_win_get_width(curr_win),
-        height = vim.api.nvim_win_get_height(curr_win),
-        row = 0,
-        col = 0,
-        style = 'minimal',
-    })
-    return new_win, function()
-        vim.api.nvim_win_close(new_win, false)
-    end
 end
 
 return Terminal
