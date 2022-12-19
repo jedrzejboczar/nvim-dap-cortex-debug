@@ -55,6 +55,15 @@ function M.assert(val, err, ...)
     return val
 end
 
+---Run function in protected mode like pcall but preserve traceback information
+---@param fn function
+---@param ... any
+---@return boolean Success
+---@return any Function return value or error message
+function M.trace_pcall(fn, ...)
+    return xpcall(fn, debug.traceback, ...)
+end
+
 ---Make path absolute, remove repeated/trailing slashes
 ---@param path string
 ---@return string

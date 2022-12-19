@@ -26,7 +26,10 @@ local function on_rtt_connect(channel)
     if rtt_win and channel then
         local term = consoles.rtt_term(channel)
         if term:is_visible() then
-            vim.api.nvim_win_close(vim.fn.bufwinid(term.buf), false)
+            local term_win = vim.fn.bufwinid(term.buf)
+            if term_win ~= rtt_win then
+                vim.api.nvim_win_close(term_win, false)
+            end
         end
 
         -- This won't work because dapui forces buffers from its internally saved mapping

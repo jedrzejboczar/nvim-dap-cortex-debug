@@ -55,7 +55,7 @@ local function veirify_jlink_config(c)
 
     if c.rtos then
         local valid = valid_rtos.jlink
-        if valid[c.rtos] then
+        if vim.tbl_contains(valid, c.rtos) then
             c.rtos = string.format('GDBServer/RTOSPlugin_%s.%s', c.rtos, utils.get_lib_ext())
         else
             if vim.fn.fnamemodify(c.rtos, ':e') == '' then
@@ -70,8 +70,6 @@ local function veirify_jlink_config(c)
         end
     end
 
-    c.rtos = string.format('GDBServer/RTOSPlugin_%s.%s', c.rtos, utils.get_lib_ext())
-
     return c
 end
 
@@ -81,7 +79,7 @@ local function veirify_openocd_config(c)
 
     if c.rtos then
         local valid = valid_rtos.openocd
-        utils.assert(valid[c.rtos], 'Invalid RTOS for %s, available: %s', c.servertype, table.concat(valid, ', '))
+        utils.assert(vim.tbl_contains(valid, c.rtos), 'Invalid RTOS for %s, available: %s', c.servertype, table.concat(valid, ', '))
     end
 
     return c
@@ -154,7 +152,7 @@ local function verify_config(c)
     }
     c = vim.tbl_deep_extend('keep', c, defaults)
 
-    c.runToEntryPoint = vim.trim(c.runToEntryPoint)
+    c.runToEntryPoint = c.runToEntryPoint and vim.trim(c.runToEntryPoint)
 
     if c.servertype ~= 'openocd' or not vim.tbl_get(c, 'ctiOpenOCDConfig', 'enabled') then
         c.ctiOpenOCDConfig = nil
@@ -190,7 +188,7 @@ local function adapter_fn(callback, launch_config)
         args = { get_debugadapter_path(extension_path) },
         options = { detached = false },
         enrich_config = function(conf, on_config)
-            local ok, conf_or_err = pcall(verify_config, vim.deepcopy(conf))
+            local ok, conf_or_err = utils.trace_pcall(verify_config, vim.deepcopy(conf))
             if ok then
                 conf = conf_or_err
             else
