@@ -1,21 +1,14 @@
 local utils = require('dap-cortex-debug.utils')
 local Buffer = require('dap-cortex-debug.buffer')
 
----@alias TerminalSetWin fun(buf: number): number, function?
-
----@class CDTerminalOpts
+---@class CDTerminalOpts:CDBufferOpts
 ---Assigns terminal buffer to a window, return window and optional callback to call when terminal is ready.
----@field set_win TerminalSetWin
----@field uri string
 ---@field on_input? fun(term: CDTerminal, data: string)
----@field on_delete? fun(term: CDTerminal)
 ---@field scroll_on_open? boolean Scroll to end when opening with new output (default true)
 
----@class CDTerminal
----@field buf number
+---@class CDTerminal:CDBuffer
 ---@field term number CDTerminal job channel
 ---@field on_input? fun(term: CDTerminal, data: string)
----@field on_delete? fun(term: CDTerminal)
 ---@field scroll_on_open boolean
 local Terminal = utils.class(Buffer)
 

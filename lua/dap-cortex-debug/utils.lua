@@ -112,9 +112,12 @@ function M.get_lib_ext()
     return config.lib_extension or extensions[M.get_platform()]
 end
 
+---@class Class
+---@field _new fun(cls: table): table
+
 --- Create a class that inherits from given class
 ---@param base_cls table?
----@return { _new: fun(cls: table): table }
+---@return Class
 function M.class(base_cls)
     -- New class table and metatable
     local cls = {}
