@@ -111,6 +111,8 @@ function M.show(address, length, opts)
     state.opts = opts or state.opts or {}
 
     session = state.opts.session or dap.session()
+    utils.assert(session ~= nil, 'No DAP session is running')
+    utils.assert(session.config.type == 'cortex-debug', 'DAP session is not cortex-debug')
 
     session:request('read-memory', { address = state.address, length = state.length },
         function(err, response)

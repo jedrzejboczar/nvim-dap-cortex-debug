@@ -90,6 +90,7 @@ function Buffer:_create_autocmds()
     vim.api.nvim_create_autocmd('BufDelete', {
         group = augroup,
         buffer = self.buf,
+        once = true,
         callback = function()
             buffers[self.uri] = nil
             if self.on_delete then
