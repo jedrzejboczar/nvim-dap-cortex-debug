@@ -113,7 +113,7 @@ function M.get_lib_ext()
 end
 
 ---@class Class
----@field _new fun(cls: table): table
+---@field _new fun(cls: table, fields?: table): table Object constructor
 
 --- Create a class that inherits from given class
 ---@param base_cls table?
@@ -123,8 +123,8 @@ function M.class(base_cls)
     local cls = {}
     cls.__index = cls
 
-    function cls:_new()
-        return setmetatable({}, cls)
+    function cls:_new(fields)
+        return setmetatable(fields or {}, cls)
     end
 
     -- Inheritance: indexing cls first checks cls due to object's metatable
@@ -150,6 +150,17 @@ function M.chunks(list, len)
         head = head + len
         tail = tail + len
         return chunk
+    end
+end
+
+---@generic T
+---@param list T[]
+function M.reverse_in_place(list)
+    for i = 1, math.floor(#list / 2) do
+        local j = #list + 1 - i
+        local tmp = list[i]
+        list[i] = list[j]
+        list[j] = tmp
     end
 end
 
