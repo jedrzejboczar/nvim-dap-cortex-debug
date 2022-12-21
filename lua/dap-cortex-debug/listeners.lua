@@ -90,10 +90,16 @@ function M.setup()
     -- which will result in a breakpoint stop and then we will get correct stack trace. But we
     -- need to re-request threads, and force nvim-dap to jump to the new frame received (it
     -- won't jump because it sees that session.stopped_thread_id ~= nil).
-    after('stackTrace', function(session, _err, response, _payload)
-        if vim.tbl_get(response, 'stackFrames', 1, 'name') == 'cortex-debug-dummy' then
-            session.stopped_thread_id = nil
-            session:update_threads()
+    after('stackTrace', function(session, err, response, _payload)
+        if not err and vim.tbl_get(response, 'stackFrames', 1, 'name') == 'cortex-debug-dummy' then
+            session._cortex_debug_dummy = (session._cortex_debug_dummy or 0) + 1
+            if session._cortex_debug_dummy <= 3 then
+                session.stopped_thread_id = nil
+                utils.debug('Re-requesting threads to fix dummy frame')
+                session:update_threads()
+            else
+                utils.warn_once('Failed to update stack trace after 3 cortex-debug-dummy frames')
+            end
         end
     end)
 
