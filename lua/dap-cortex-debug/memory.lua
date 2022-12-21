@@ -51,15 +51,83 @@ function MemoryView:new(opts)
 
     mem_views[mem.id] = mem
 
-    -- TODO: keymaps
+    mem:_set_keymaps()
 
     return mem
+end
+
+function MemoryView:_set_keymaps()
+    local inc = function(v) return v + 1 end
+    local dec = function(v) return v - 1 end
+    local mul2 = function(v) return 2 * v end
+    local div2 = function(v) return math.ceil(v / 2) end -- avoid going to 0 for mul2 to work
+    local swap_endianess = function(v) return v == 'big' and 'little' or 'big' end
+    local invert = function(v) return not val end
+
+    local maps = {
+        { 'g?', 'Show help' },
+        { 'gr', 'Refresh memory from DUT' },
+        { 'ge', 'Toggle byte-word endianess', 'endianess', swap_endianess },
+        { 'gx', 'Toggle address 0x prefix', 'addr_0x', invert },
+        { '-', 'Decrement bytes per line', 'per_line', dec },
+        { '+', 'Increment bytes per line', 'per_line', inc },
+        { '[w', 'Decrease bytes per word (/2)', 'word_bytes', div2 },
+        { ']w', 'Increase bytes per word (x2)', 'word_bytes', mul2 },
+        { '[g', 'Decrement byte group size', 'group_by', dec },
+        { ']g', 'Increment byte group size', 'group_by', inc },
+        { '[s', 'Decrement number of spaces', 'spaces', dec },
+        { ']s', 'Increment number of spaces', 'spaces', inc },
+    }
+    for _, map in ipairs(maps) do
+        maps[map[1]] = map
+    end
+
+    local nmap = function(lhs, rhs)
+        vim.keymap.set('n', lhs, rhs, { buffer = self.buffer.buf, desc = maps[lhs][2] })
+    end
+
+    -- Automatically create parameter update mappings
+    for _, map in ipairs(maps) do
+        if map[3] then
+            local lhs, desc, param, modify_fn = unpack(map)
+            rhs = function()
+                self:with { hexdump = { [param] = modify_fn(self:hexdump()[param]) } }
+                self:set(self.bytes)
+            end
+            vim.keymap.set('n', lhs, rhs, { buffer = self.buffer.buf, desc = desc })
+        end
+    end
+
+    nmap('gr', function() self:update() end)
+    nmap('g?', function()
+        local fmt = '%5s   %s'
+        local lines = {fmt:format('LHS', 'Description')}
+        for _, map in ipairs(maps) do
+            local lhs, desc = unpack(map)
+            table.insert(lines, fmt:format('`'..lhs..'`', desc))
+        end
+        table.insert(lines, 'Move cursor to go back')
+
+        vim.api.nvim_buf_clear_namespace(self.buffer.buf, ns, 0, -1)
+        vim.api.nvim_buf_set_lines(self.buffer.buf, 0, -1, false, lines)
+        vim.schedule(function()
+            vim.api.nvim_create_autocmd('CursorMoved', {
+                once = true,
+                buffer = self.buffer.buf,
+                callback = function()
+                    if self.bytes then self:set(self.bytes) end
+                end
+            })
+        end)
+    end)
 end
 
 ---@param opts MemoryViewOpts
 ---@return MemoryView
 function MemoryView:with(opts)
-    if opts.id ~= self.id then utils.warn('Cannot reconfigure MemoryView.id') end
+    if opts.id and opts.id ~= self.id then
+        utils.warn('Cannot reconfigure MemoryView.id')
+    end
     self.address = vim.F.if_nil(opts.address, self.address)
     self.length = vim.F.if_nil(opts.length, self.length)
     self._hexdump = vim.tbl_extend('force', self._hexdump, opts.hexdump or {})
@@ -92,21 +160,36 @@ end
 
 function MemoryView:set(bytes)
     if not self.buffer:is_valid() then return end
+    local buf = self.buffer.buf
 
     self.update_id = self.update_id + 1
     local changes = self:changes(bytes)
     self.bytes = bytes
 
-    local dump = self:hexdump()
-    local lines = dump:lines(bytes)
+    vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
 
-    vim.api.nvim_buf_clear_namespace(self.buffer.buf, ns, 0, -1)
-    vim.api.nvim_buf_set_lines(self.buffer.buf, 0, -1, false, lines)
+    -- Handle hexdump generation errors due to incorrect parameters
+    local ok, dump, lines = pcall(function()
+        local dump = self:hexdump()
+        local lines = dump:lines(bytes)
+        return dump, lines
+    end)
+
+    if not ok then
+        local err = dump
+        local line1 = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1]
+        local end_col = vim.startswith(line1 or '', 'ERROR') and 1 or 0
+        vim.api.nvim_buf_set_lines(buf, 0, end_col, false, { 'ERROR: ' .. err })
+        vim.api.nvim_buf_add_highlight(buf, ns, 'Error', 0, 0, -1)
+        return
+    end
+
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
     if self.highlight_time >= 0 then
         for _, c in ipairs(changes) do
-            vim.api.nvim_buf_add_highlight(self.buffer.buf, ns, 'DiffChange', dump:pos_hex(c))
-            vim.api.nvim_buf_add_highlight(self.buffer.buf, ns, 'DiffChange', dump:pos_ascii(c))
+            vim.api.nvim_buf_add_highlight(buf, ns, 'DiffChange', dump:pos_hex(c))
+            vim.api.nvim_buf_add_highlight(buf, ns, 'DiffChange', dump:pos_ascii(c))
         end
     end
 
@@ -114,14 +197,14 @@ function MemoryView:set(bytes)
         local id = self.update_id
         vim.defer_fn(function()
             if self.update_id == id and self.buffer:is_valid() then
-                vim.api.nvim_buf_clear_namespace(self.buffer.buf, ns, 0, -1)
+                vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
             end
         end, self.highlight_time)
     end
 end
 
 function MemoryView:update()
-    session = dap.session()
+    local session = dap.session()
     utils.assert(session ~= nil, 'No DAP session is running')
     utils.assert(session.config.type == 'cortex-debug', 'DAP session is not cortex-debug')
     session:request('read-memory', { address = self.address, length = self.length },

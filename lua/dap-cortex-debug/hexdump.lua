@@ -33,7 +33,8 @@ function HexDump:new(opts)
         addr_0x = vim.F.if_nil(opts.addr_0x, false),
         spaces = opts.spaces or 3,
     }
-    o:_update_fmt()
+    -- to allow for construction of invalid objects with settings for hot-reload
+    pcall(o._update_fmt, o)
     return o
 end
 
