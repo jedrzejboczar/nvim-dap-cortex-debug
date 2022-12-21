@@ -1,141 +1,167 @@
 local dap = require('dap')
 local utils = require('dap-cortex-debug.utils')
 local Buffer = require('dap-cortex-debug.buffer')
-
-local M = {}
+local HexDump = require('dap-cortex-debug.hexdump')
 
 local ns = vim.api.nvim_create_namespace('cortex-debug-memory')
 
-function M.hexdump(bytes, opts)
-    opts = vim.tbl_extend('force', {
-        start = 0,
-        n = 16,
-        double_space = 8,
-    }, opts or {})
+---@type { [integer]: MemoryView }
+local mem_views = {}
 
-    local lines = {}
-    local addr = opts.start
-    local addr_inc = opts.n
-    for chunk in utils.chunks(bytes, opts.n) do
-        local hex = {}
-        local ascii = {}
-        for i, byte in ipairs(chunk) do
-            local str = string.format('%02x', byte)
-            if opts.double_space and (i - 1) % opts.double_space == 0 then
-                str = ' ' .. str
-            end
-            table.insert(hex, str)
+--- Memory viewer that attaches to a buffer to display hexdump
+---@class MemoryView:Class
+---@field id integer Memory view window number
+---@field address integer Memory start address
+---@field length integer Memory length in bytes
+---@field bytes nil|integer[] Current memory bytes
+---@field buffer CDBuffer Display buffer
+---@field update_id integer Incremented on each update
+---@field highlight_time integer Duration [ms] of change highlight (-1 -> disabled, 0 -> until next update)
+---@field _hexdump HexDumpOpts Hexdump display options
+local MemoryView = utils.class()
 
-            local printable = byte >= 32 and byte <= 126
-            table.insert(ascii, printable and string.char(byte) or '.')
-        end
+---@class MemoryViewOpts
+---@field id integer
+---@field address integer
+---@field length integer
+---@field hexdump? HexDumpOpts
+---@field highlight_time? integer
 
-        local line = string.format('0x%08x %s  %s', addr, table.concat(hex, ' '), table.concat(ascii, ''))
-        table.insert(lines, line)
-        addr = addr + addr_inc
-    end
-    return lines
-end
+---@param opts MemoryViewOpts
+---@return MemoryView
+function MemoryView:new(opts)
+    vim.validate {opts = {opts, 'table'}}
 
-local state = {
-    address = nil,
-    length = nil,
-    opts = nil,
-    bytes = nil,
-    id = nil,
-}
-
-M.uri = [[cortex-debug://memory]]
-
-function M.memory_buf()
-    return Buffer.get_or_new {
-        uri = M.uri,
+    local mem = self:_new()
+    mem.id = opts.id
+    mem.address = assert(opts.address)
+    mem.length = assert(opts.length)
+    mem._hexdump = opts.hexdump or {}
+    mem.highlight_time = opts.highlight_time or 0
+    mem.bytes = nil
+    mem.update_id = 0
+    mem.buffer = Buffer.get_or_new {
+        uri = MemoryView._uri(mem.id),
         set_win = Buffer.open_in_split { size = 90, mods = 'vertical' },
         on_delete = function()
-            if state.address then
-                for key, _ in pairs(state) do
-                    state[key] = nil
-                end
-            end
-        end
+            mem_views[self.id] = nil
+        end,
     }
+    mem.buffer._memview = mem
+
+    mem_views[mem.id] = mem
+
+    -- TODO: keymaps
+
+    return mem
 end
 
-function M.is_open()
-    return Buffer.get(M.uri) ~= nil
+function MemoryView._uri(id)
+    return string.format([[cortex-debug://memory:%d]], id)
 end
 
-local function update_display(prev_bytes)
-    state.id = (state.id or 0) + 1
+---@param id integer
+---@return MemoryView?
+function MemoryView.get(id)
+    local buffer = Buffer.get(MemoryView._uri(id))
+    return buffer and buffer._memview
+end
 
-    local hex_opts = vim.tbl_extend('error', { start = tonumber(state.address) }, state.opts)
-    local lines = M.hexdump(state.bytes, hex_opts)
+---@param opts MemoryViewOpts
+---@return MemoryView
+function MemoryView.get_or_new(opts)
+    local buffer = Buffer.get(MemoryView._uri(opts.id))
+    return buffer and buffer._memview or MemoryView:new(opts)
+end
 
-    local changes = {}
-    if prev_bytes then
-        for i = 1, #state.bytes do
-            if state.bytes[i] ~= prev_bytes[i] then
-                table.insert(changes, i)
+function MemoryView:hexdump()
+    local opts = vim.tbl_extend('error', { address = self.address }, self._hexdump)
+    return HexDump:new(opts)
+end
+
+function MemoryView:set(bytes)
+    if not self.buffer:is_valid() then return end
+
+    self.update_id = self.update_id + 1
+    local changes = self:changes(bytes)
+    self.bytes = bytes
+
+    local dump = self:hexdump()
+    local lines = dump:lines(bytes)
+
+    vim.api.nvim_buf_clear_namespace(self.buffer.buf, ns, 0, -1)
+    vim.api.nvim_buf_set_lines(self.buffer.buf, 0, -1, false, lines)
+
+    if self.highlight_time >= 0 then
+        for _, c in ipairs(changes) do
+            vim.api.nvim_buf_add_highlight(self.buffer.buf, ns, 'DiffChange', dump:pos_hex(c))
+            vim.api.nvim_buf_add_highlight(self.buffer.buf, ns, 'DiffChange', dump:pos_ascii(c))
+        end
+    end
+
+    if self.highlight_time > 0 then
+        local id = self.update_id
+        vim.defer_fn(function()
+            if self.update_id == id and self.buffer:is_valid() then
+                vim.api.nvim_buf_clear_namespace(self.buffer.buf, ns, 0, -1)
             end
-        end
+        end, self.highlight_time)
     end
-
-    local mem = M.memory_buf()
-    vim.api.nvim_buf_clear_namespace(mem.buf, ns, 0, -1)
-    vim.api.nvim_buf_set_lines(mem.buf, 0, -1, false, lines)
-
-    for _, change in ipairs(changes) do
-        local n = hex_opts.n or 16
-        local line = math.floor((change - 1) / n)
-        local line_pos = (change - 1) % n
-        -- address, space, 3 chars per byte, 1 per each 8 bytes
-        local col = 10 + 2 + line_pos * 3 + math.floor(line_pos / 8)
-        vim.api.nvim_buf_add_highlight(mem.buf, ns, 'DiffChange', line, col, col + 2)
-        -- ascii
-        local ascii_col = 10 + 2 + 3 * n + math.floor(n / 8) + line_pos
-        vim.api.nvim_buf_add_highlight(mem.buf, ns, 'DiffChange', line, ascii_col, ascii_col + 1)
-    end
-
-    local id = state.id
-    local delay = 3000
-    vim.defer_fn(function()
-        if state.id == id and vim.api.nvim_buf_is_valid(mem.buf) then
-            vim.api.nvim_buf_clear_namespace(mem.buf, ns, 0, -1)
-        end
-    end, delay)
 end
 
-function M.show(address, length, opts)
-    state.address = address or state.address
-    state.length = length or state.length
-    state.opts = opts or state.opts or {}
-
-    session = state.opts.session or dap.session()
+function MemoryView:update()
+    session = dap.session()
     utils.assert(session ~= nil, 'No DAP session is running')
     utils.assert(session.config.type == 'cortex-debug', 'DAP session is not cortex-debug')
-
-    session:request('read-memory', { address = state.address, length = state.length },
+    session:request('read-memory', { address = self.address, length = self.length },
         function(err, response)
             if err then
                 utils.error('read-memory failed: %s', err)
                 return
             end
-
-            if tonumber(response.startAddress) ~= state.address then
-                utils.warn('Address mismatch 0x%08x vs 0x%08x', response.startAddress, state.address)
+            if tonumber(response.startAddress) ~= self.address then
+                utils.warn('Address mismatch 0x%08x vs 0x%08x', response.startAddress, self.address)
             end
-
-            local prev = state.bytes
-            state.bytes = response.bytes
-            update_display(prev)
+            self:set(response.bytes)
         end
     )
 end
 
-function M.update()
-    if M.is_open() then
-        M.show()
+--- Find positions of modified bytes
+---@param bytes integer[]
+---@return integer[]
+function MemoryView:changes(bytes)
+    local changes = {}
+    if self.bytes then
+        for i = 1, #bytes do
+            if self.bytes[i] ~= bytes[i] then
+                table.insert(changes, i)
+            end
+        end
+    end
+    return changes
+end
+
+local function show(address, length, opts)
+    opts = opts or {}
+    local view = MemoryView.get_or_new {
+        address = address,
+        length = length,
+        id = opts.id or 1,
+    }
+    view.address = address
+    view.length = length
+    view:update()
+end
+
+local function update()
+    for _, view in pairs(mem_views) do
+        view:update()
     end
 end
 
-return M
+return {
+    show = show,
+    update = update,
+    MemoryView = MemoryView,
+}

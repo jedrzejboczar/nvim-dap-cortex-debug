@@ -105,6 +105,10 @@ function Buffer:is_visible()
     return vim.api.nvim_win_is_valid(vim.fn.bufwinid(self.buf))
 end
 
+function Buffer:is_valid()
+    return vim.api.nvim_buf_is_valid(self.buf)
+end
+
 function Buffer.temporary_win(buf)
     local curr_win = vim.api.nvim_get_current_win()
     local new_win = vim.api.nvim_open_win(buf, false, {

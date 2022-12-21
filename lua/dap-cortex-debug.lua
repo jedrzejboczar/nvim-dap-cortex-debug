@@ -4,6 +4,8 @@ local dap = require('dap')
 local config = require('dap-cortex-debug.config')
 local listeners = require('dap-cortex-debug.listeners')
 local adapter = require('dap-cortex-debug.adapter')
+local memory = require('dap-cortex-debug.memory')
+local utils = require('dap-cortex-debug.utils')
 
 function M.setup(opts)
     config.setup(opts)
@@ -14,6 +16,14 @@ function M.setup(opts)
 
     -- Could be a function(cb, config) to auto-generate docker command arguments
     dap.adapters['cortex-debug'] = adapter
+
+    -- TODO: completion of variable names that maps them to address?
+    -- TODO: handle mods for location of window
+    vim.api.nvim_create_user_command('CDMemory', function(o)
+        local address = utils.assert(tonumber(o.fargs[1]), 'Incorrect `address`: %s', o.fargs[1])
+        local length = utils.assert(tonumber(o.fargs[2]), 'Incorrect `length`: %s', o.fargs[1])
+        memory.show(address, length, { id = o.count })
+    end, { desc = 'Open memory viewer', nargs = '+', range = 1 })
 end
 
 ---@class RTTChannel
