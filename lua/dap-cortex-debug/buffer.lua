@@ -4,7 +4,7 @@ local utils = require('dap-cortex-debug.utils')
 ---@alias Uri string
 
 ---@class CDBufferOpts
----Assigns terminal buffer to a window, return window and optional callback to call when terminal is ready.
+---Assigns buffer to a window, return window and optional callback to call when is ready.
 ---@field set_win BufferSetWin
 ---@field uri Uri
 ---@field on_delete? fun(b: CDBuffer)
@@ -32,7 +32,7 @@ function Buffer:new(opts, instance)
     local b = instance or self:_new()
     b.buf = nil
     b.on_delte = nil
-    b.uri = opts.uri
+    b.uri = assert(opts.uri)
 
     b:_create_buf(opts.set_win)
     b:_create_autocmds()
@@ -58,7 +58,7 @@ end
 ---@param uri Uri
 function Buffer:set_uri(uri)
     if buffers[uri] then
-        utils.error('Terminal with given URI already exists: "%s"', uri)
+        utils.error('Buffer with given URI already exists: "%s"', uri)
         return
     end
     -- TODO: set user friendly b:term_title?
@@ -68,7 +68,6 @@ function Buffer:set_uri(uri)
     buffers[self.uri] = self
 end
 
--- Create terminal buffer
 function Buffer:_create_buf(set_win)
     self.buf = vim.api.nvim_create_buf(true, true)
     self:set_uri(self.uri)

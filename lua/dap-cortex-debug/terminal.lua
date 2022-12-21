@@ -99,7 +99,7 @@ end
 
 -- Set up buffer autocommands
 function Terminal:_create_autocmds()
-    Buffer:_create_autocmds()
+    Buffer._create_autocmds(self)
     vim.api.nvim_create_autocmd('BufWinEnter', {
         group = augroup,
         buffer = self.buf,
