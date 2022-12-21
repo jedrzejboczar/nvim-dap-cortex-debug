@@ -1,5 +1,6 @@
 local M = {}
 
+local dap = require('dap')
 local config = require('dap-cortex-debug.config')
 
 ---Wrap a function with given values for N first arguments
@@ -89,6 +90,22 @@ function M.coroutine_resume()
     return function(...)
         coroutine.resume(co, ...)
     end
+end
+
+---@async
+--- Execute session request as sync call
+---@param command string
+---@param arguments? any
+---@param session? Session
+---@return table err
+---@return any result
+function M.session_request(command, arguments, session)
+    session = session or dap.session()
+    local resume = M.coroutine_resume()
+    session:request(command, arguments, function(err, response)
+        resume(err, response)
+    end)
+    return coroutine.yield()
 end
 
 ---Determine system platform

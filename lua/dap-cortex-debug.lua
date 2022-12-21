@@ -20,9 +20,25 @@ function M.setup(opts)
     -- TODO: completion of variable names that maps them to address?
     -- TODO: handle mods for location of window
     vim.api.nvim_create_user_command('CDMemory', function(o)
-        local address = utils.assert(tonumber(o.fargs[1]), 'Incorrect `address`: %s', o.fargs[1])
-        local length = utils.assert(tonumber(o.fargs[2]), 'Incorrect `length`: %s', o.fargs[1])
-        memory.show(address, length, { id = o.count })
+        coroutine.wrap(function()
+            local address, length
+            if #o.fargs == 2 then
+                address = utils.assert(tonumber(o.fargs[1]), 'Incorrect `address`: %s', o.fargs[1])
+                length = utils.assert(tonumber(o.fargs[2]), 'Incorrect `length`: %s', o.fargs[1])
+            elseif #o.fargs == 1 then
+                local err, mem = memory.var_to_mem(o.fargs[1])
+                if err then
+                    utils.error('Error when evaluating "%s": %s', o.fargs[1], err.message or err)
+                    return
+                end
+                assert(mem ~= nil)
+                address, length = mem.address, mem.length
+            else
+                utils.error('Incorrect number of arguments')
+                return
+            end
+            memory.show { address = address, length = length, id = o.count }
+        end)()
     end, { desc = 'Open memory viewer', nargs = '+', range = 1 })
 end
 

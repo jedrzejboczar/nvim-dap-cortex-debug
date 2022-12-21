@@ -56,6 +56,17 @@ function MemoryView:new(opts)
     return mem
 end
 
+---@param opts MemoryViewOpts
+---@return MemoryView
+function MemoryView:with(opts)
+    if opts.id ~= self.id then utils.warn('Cannot reconfigure MemoryView.id') end
+    self.address = vim.F.if_nil(opts.address, self.address)
+    self.length = vim.F.if_nil(opts.length, self.length)
+    self._hexdump = vim.tbl_extend('force', self._hexdump, opts.hexdump or {})
+    self.highlight_time = vim.F.if_nil(opts.highlight_time, self.highlight_time)
+    return self
+end
+
 function MemoryView._uri(id)
     return string.format([[cortex-debug://memory:%d]], id)
 end
@@ -71,11 +82,11 @@ end
 ---@return MemoryView
 function MemoryView.get_or_new(opts)
     local buffer = Buffer.get(MemoryView._uri(opts.id))
-    return buffer and buffer._memview or MemoryView:new(opts)
+    return buffer and buffer._memview:with(opts) or MemoryView:new(opts)
 end
 
 function MemoryView:hexdump()
-    local opts = vim.tbl_extend('error', { address = self.address }, self._hexdump)
+    local opts = vim.tbl_extend('error', { start_addr = self.address }, self._hexdump)
     return HexDump:new(opts)
 end
 
@@ -116,7 +127,7 @@ function MemoryView:update()
     session:request('read-memory', { address = self.address, length = self.length },
         function(err, response)
             if err then
-                utils.error('read-memory failed: %s', err)
+                utils.error('read-memory failed: %s', err.message or vim.inspect(err))
                 return
             end
             if tonumber(response.startAddress) ~= self.address then
@@ -142,16 +153,9 @@ function MemoryView:changes(bytes)
     return changes
 end
 
-local function show(address, length, opts)
-    opts = opts or {}
-    local view = MemoryView.get_or_new {
-        address = address,
-        length = length,
-        id = opts.id or 1,
-    }
-    view.address = address
-    view.length = length
-    view:update()
+---@param opts MemoryViewOpts
+local function show(opts)
+    MemoryView.get_or_new(opts):update()
 end
 
 local function update()
@@ -160,8 +164,43 @@ local function update()
     end
 end
 
+---@async
+--- Try to evaluate a variable to get its memory range
+---@param var string Should be variable value, & will be prepended
+---@param opts? { frame_id?: integer }
+---@return any|nil error
+---@return nil|{ address: integer, length: integer }
+local function var_to_mem(var, opts)
+    opts = vim.tbl_extend('force', {
+        frame_id = dap.session().current_frame.id,
+    }, opts or {})
+
+    local evaluate = function(expr)
+        return utils.session_request('evaluate', {
+            expression = expr,
+            frameId = opts.frame_id,
+            context = 'variables'
+        })
+    end
+
+    local err, response = evaluate('&' .. var)
+    if err then return err end
+
+    local address = tonumber(response.memoryReference)
+    if not address then return 'Could not get address of ' .. var end
+
+    err, response = evaluate(string.format('sizeof(%s)', var))
+    if err then return err end
+
+    local length = tonumber(response.result)
+    if not length then return 'Could not get size of ' .. var end
+
+    return nil, { address = address, length = length }
+end
+
 return {
     show = show,
     update = update,
+    var_to_mem = var_to_mem,
     MemoryView = MemoryView,
 }
