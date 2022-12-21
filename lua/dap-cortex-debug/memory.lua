@@ -30,7 +30,7 @@ local MemoryView = utils.class()
 ---@param opts MemoryViewOpts
 ---@return MemoryView
 function MemoryView:new(opts)
-    vim.validate {opts = {opts, 'table'}}
+    vim.validate { opts = { opts, 'table' } }
 
     local mem = self:_new()
     mem.id = opts.id
@@ -57,26 +57,29 @@ function MemoryView:new(opts)
 end
 
 function MemoryView:_set_keymaps()
-    local inc = function(v) return v + 1 end
-    local dec = function(v) return v - 1 end
-    local mul2 = function(v) return 2 * v end
-    local div2 = function(v) return math.ceil(v / 2) end -- avoid going to 0 for mul2 to work
-    local swap_endianess = function(v) return v == 'big' and 'little' or 'big' end
-    local invert = function(v) return not val end
+    -- stylua: ignore
+    local fn = {
+        inc = function(v) return v + 1 end,
+        dec = function(v) return v - 1 end,
+        mul2 = function(v) return 2 * v end,
+        div2 = function(v) return math.ceil(v / 2) end, -- avoid going to 0 for mul2 to work
+        swap_endianess = function(v) return v == 'big' and 'little' or 'big' end,
+        invert = function(v) return not v end,
+    }
 
     local maps = {
         { 'g?', 'Show help' },
         { 'gr', 'Refresh memory from DUT' },
-        { 'ge', 'Toggle byte-word endianess', 'endianess', swap_endianess },
-        { 'gx', 'Toggle address 0x prefix', 'addr_0x', invert },
-        { '-', 'Decrement bytes per line', 'per_line', dec },
-        { '+', 'Increment bytes per line', 'per_line', inc },
-        { '[w', 'Decrease bytes per word (/2)', 'word_bytes', div2 },
-        { ']w', 'Increase bytes per word (x2)', 'word_bytes', mul2 },
-        { '[g', 'Decrement byte group size', 'group_by', dec },
-        { ']g', 'Increment byte group size', 'group_by', inc },
-        { '[s', 'Decrement number of spaces', 'spaces', dec },
-        { ']s', 'Increment number of spaces', 'spaces', inc },
+        { 'ge', 'Toggle byte-word endianess', 'endianess', fn.swap_endianess },
+        { 'gx', 'Toggle address 0x prefix', 'addr_0x', fn.invert },
+        { '-', 'Decrement bytes per line', 'per_line', fn.dec },
+        { '+', 'Increment bytes per line', 'per_line', fn.inc },
+        { '[w', 'Decrease bytes per word (/2)', 'word_bytes', fn.div2 },
+        { ']w', 'Increase bytes per word (x2)', 'word_bytes', fn.mul2 },
+        { '[g', 'Decrement byte group size', 'group_by', fn.dec },
+        { ']g', 'Increment byte group size', 'group_by', fn.inc },
+        { '[s', 'Decrement number of spaces', 'spaces', fn.dec },
+        { ']s', 'Increment number of spaces', 'spaces', fn.inc },
     }
     for _, map in ipairs(maps) do
         maps[map[1]] = map
@@ -90,7 +93,7 @@ function MemoryView:_set_keymaps()
     for _, map in ipairs(maps) do
         if map[3] then
             local lhs, desc, param, modify_fn = unpack(map)
-            rhs = function()
+            local rhs = function()
                 self:with { hexdump = { [param] = modify_fn(self:hexdump()[param]) } }
                 self:set(self.bytes)
             end
@@ -98,13 +101,15 @@ function MemoryView:_set_keymaps()
         end
     end
 
-    nmap('gr', function() self:update() end)
+    nmap('gr', function()
+        self:update()
+    end)
     nmap('g?', function()
         local fmt = '%5s   %s'
-        local lines = {fmt:format('LHS', 'Description')}
+        local lines = { fmt:format('LHS', 'Description') }
         for _, map in ipairs(maps) do
             local lhs, desc = unpack(map)
-            table.insert(lines, fmt:format('`'..lhs..'`', desc))
+            table.insert(lines, fmt:format('`' .. lhs .. '`', desc))
         end
         table.insert(lines, 'Move cursor to go back')
 
@@ -115,8 +120,10 @@ function MemoryView:_set_keymaps()
                 once = true,
                 buffer = self.buffer.buf,
                 callback = function()
-                    if self.bytes then self:set(self.bytes) end
-                end
+                    if self.bytes then
+                        self:set(self.bytes)
+                    end
+                end,
             })
         end)
     end)
@@ -159,7 +166,9 @@ function MemoryView:hexdump()
 end
 
 function MemoryView:set(bytes)
-    if not self.buffer:is_valid() then return end
+    if not self.buffer:is_valid() then
+        return
+    end
     local buf = self.buffer.buf
 
     self.update_id = self.update_id + 1
@@ -207,18 +216,16 @@ function MemoryView:update()
     local session = dap.session()
     utils.assert(session ~= nil, 'No DAP session is running')
     utils.assert(session.config.type == 'cortex-debug', 'DAP session is not cortex-debug')
-    session:request('read-memory', { address = self.address, length = self.length },
-        function(err, response)
-            if err then
-                utils.error('read-memory failed: %s', err.message or vim.inspect(err))
-                return
-            end
-            if tonumber(response.startAddress) ~= self.address then
-                utils.warn('Address mismatch 0x%08x vs 0x%08x', response.startAddress, self.address)
-            end
-            self:set(response.bytes)
+    session:request('read-memory', { address = self.address, length = self.length }, function(err, response)
+        if err then
+            utils.error('read-memory failed: %s', err.message or vim.inspect(err))
+            return
         end
-    )
+        if tonumber(response.startAddress) ~= self.address then
+            utils.warn('Address mismatch 0x%08x vs 0x%08x', response.startAddress, self.address)
+        end
+        self:set(response.bytes)
+    end)
 end
 
 --- Find positions of modified bytes
@@ -262,21 +269,27 @@ local function var_to_mem(var, opts)
         return utils.session_request('evaluate', {
             expression = expr,
             frameId = opts.frame_id,
-            context = 'variables'
+            context = 'variables',
         })
     end
 
     local err, response = evaluate('&' .. var)
-    if err then return err end
-
+    if err then
+        return err
+    end
     local address = tonumber(response.memoryReference)
-    if not address then return 'Could not get address of ' .. var end
+    if not address then
+        return 'Could not get address of ' .. var
+    end
 
     err, response = evaluate(string.format('sizeof(%s)', var))
-    if err then return err end
-
+    if err then
+        return err
+    end
     local length = tonumber(response.result)
-    if not length then return 'Could not get size of ' .. var end
+    if not length then
+        return 'Could not get size of ' .. var
+    end
 
     return nil, { address = address, length = length }
 end

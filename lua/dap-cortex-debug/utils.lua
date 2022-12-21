@@ -162,7 +162,9 @@ function M.chunks(list, len)
     local head = 1
     local tail = len
     return function()
-        if head > #list then return end
+        if head > #list then
+            return
+        end
         local chunk = vim.list_slice(list, head, tail)
         head = head + len
         tail = tail + len

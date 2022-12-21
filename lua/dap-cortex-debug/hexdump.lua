@@ -42,8 +42,8 @@ function HexDump:_update_fmt()
     assert(self.per_line % self.word_bytes == 0, 'per_line must be multiple of word_bytes')
     assert(self.group_by % self.word_bytes == 0, 'group_by must be multiple of word_bytes')
     self._fmt = {
-        addr = self.addr_0x and {'0x%08x', 10} or {'%08x', 8},
-        word = {string.rep('%02x', self.word_bytes), 2 * self.word_bytes},
+        addr = self.addr_0x and { '0x%08x', 10 } or { '%08x', 8 },
+        word = { string.rep('%02x', self.word_bytes), 2 * self.word_bytes },
     }
 end
 
@@ -126,19 +126,31 @@ function HexDump:pos_ascii(b)
     return row, col, col + 1
 end
 
-function HexDump:words_per_line() return math.floor(self.per_line / self.word_bytes) end
-function HexDump:words_per_group() return math.floor(self.group_by / self.word_bytes) end
+function HexDump:words_per_line()
+    return math.floor(self.per_line / self.word_bytes)
+end
+function HexDump:words_per_group()
+    return math.floor(self.group_by / self.word_bytes)
+end
 
 -- Everyting 0-indexed
-function HexDump:_byte_row(b) return math.floor(b / self.per_line) end
-function HexDump:_byte_in_row(b) return b % self.per_line end
+function HexDump:_byte_row(b)
+    return math.floor(b / self.per_line)
+end
+function HexDump:_byte_in_row(b)
+    return b % self.per_line
+end
 -- All following inputs `b` are modulo line (aka _byte_in_row)
-function HexDump:_byte_word(b) return math.floor(b / self.word_bytes) end
+function HexDump:_byte_word(b)
+    return math.floor(b / self.word_bytes)
+end
 function HexDump:_byte_in_word(b)
     local i = b % self.word_bytes
-    return  self.endianess == 'little' and (self.word_bytes-1 - i) or i
+    return self.endianess == 'little' and (self.word_bytes - 1 - i) or i
 end
-function HexDump:_byte_groups(b) return math.floor(b / self.group_by) end
+function HexDump:_byte_groups(b)
+    return math.floor(b / self.group_by)
+end
 function HexDump:_byte_col(b)
     local addr_w = self._fmt.addr[2] + self.spaces
     local word_w = self._fmt.word[2] + 1
@@ -149,7 +161,7 @@ function HexDump:_ascii_col(b)
     local addr_w = self._fmt.addr[2] + self.spaces
     local word_w = self._fmt.word[2] + 1
     local hex_end = addr_w + (self:words_per_line() * word_w - 1) + self:_byte_groups(self.per_line - 1)
-    return hex_end + self.spaces +  b
+    return hex_end + self.spaces + b
 end
 
 function HexDump:_printable(byte)
@@ -158,6 +170,7 @@ end
 
 --- Open test buffer with live-update of settings on key presses
 ---@private
+-- stylua: ignore
 function HexDump._test_buf_open(opts)
     local dump = HexDump:new(opts)
 
@@ -200,10 +213,12 @@ function HexDump._test_buf_open(opts)
             local hex = vim.api.nvim_buf_get_text(buf, row, start_col, row, end_col, {})[1]
             local hex_expected = string.format('%02x', byte)
             if hex ~= hex_expected then
-                table.insert(tests, string.format('ERR at %2d: %s vs %s : %d %d %d', i, hex, hex_expected, row, start_col, end_col))
+                table.insert(tests,
+                    string.format('ERR at %2d: %s vs %s : %d %d %d', i, hex, hex_expected, row, start_col, end_col))
             else
                 n_ok = n_ok + 1
-                table.insert(tests, string.format('ok  at %2d: %s vs %s : %d %d %d', i, hex, hex_expected, row, start_col, end_col))
+                table.insert(tests,
+                    string.format('ok  at %2d: %s vs %s : %d %d %d', i, hex, hex_expected, row, start_col, end_col))
             end
         end
 

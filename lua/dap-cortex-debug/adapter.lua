@@ -79,7 +79,12 @@ local function veirify_openocd_config(c)
 
     if c.rtos then
         local valid = valid_rtos.openocd
-        utils.assert(vim.tbl_contains(valid, c.rtos), 'Invalid RTOS for %s, available: %s', c.servertype, table.concat(valid, ', '))
+        utils.assert(
+            vim.tbl_contains(valid, c.rtos),
+            'Invalid RTOS for %s, available: %s',
+            c.servertype,
+            table.concat(valid, ', ')
+        )
     end
 
     return c
