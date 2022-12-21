@@ -38,7 +38,7 @@ FEATURES                                           *dap-cortex-debug-features*
 - ☐ Peripheral Register Viewer from SVD file
 - ☐ SWO decoding
 - ☒ SEGGER RTT using OpenOCD/J-Link (currently only "console")
-- ☐ Raw Memory Viewer
+- ☒ Raw Memory Viewer
 - ☐ Dissassembly viewer
 - ☐ RTOS support
 - ☐ Integration with nvim-dap-ui <https://github.com/rcarriga/nvim-dap-ui> (requires minor changes in nvim-dap-ui)
@@ -145,12 +145,12 @@ which should be equivalent to the following:
             configFiles = { '${workspaceFolder}/build/openocd/connect.cfg' },
             rttConfig = {
                 address = 'auto',
-                decoders = { 
+                decoders = {
                     {
                         label = 'RTT:0',
                         port = 0,
                         type = 'console'
-                    } 
+                    }
                 },
                 enabled = true
             },
