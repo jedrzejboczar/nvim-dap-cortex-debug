@@ -7,6 +7,7 @@ Table of Contents                         *dap-cortex-debug-table-of-contents*
   - Features                                       |dap-cortex-debug-features|
   - Installation                               |dap-cortex-debug-installation|
   - Configuration                             |dap-cortex-debug-configuration|
+  - Troubleshooting                         |dap-cortex-debug-troubleshooting|
   - Implementation notes               |dap-cortex-debug-implementation-notes|
 
 <img
@@ -83,8 +84,11 @@ options (with default values):
 >
     require('dap-cortex-debug').setup {
         debug = false,  -- log debug messages
-        extension_path = '~/.vscode/extensions/marus25.cortex-debug-*/', -- path to cortex-debug extension, supports vim.fn.glob
+        -- path to cortex-debug extension, supports vim.fn.glob
+        extension_path = (is_windows() and '$USERPROFILE' or '~')
+            .. '/.vscode/extensions/marus25.cortex-debug-*/',
         lib_extension = nil, -- tries auto-detecting, e.g. 'so' on unix
+        node_path = 'node', -- path to node.js executable
     }
 <
 
@@ -163,6 +167,15 @@ GDB server output can be seen in `cotex-debug://gdb-server-console` buffer. It
 is hidden by default, use `:buffer` or some buffer picker to open it. If RTT
 logging is enabled, a terminal buffer with the output will be opened (with the
 name `cortex-debug://rtt:PORT` where `PORT` is `rttConfig.decoders[i].port`).
+
+TROUBLESHOOTING                             *dap-cortex-debug-troubleshooting*
+
+To verify common problems run |checkhealth|:
+
+>
+    :checkhealth dap-cortex-debug
+<
+
 
 IMPLEMENTATION NOTES                   *dap-cortex-debug-implementation-notes*
 
