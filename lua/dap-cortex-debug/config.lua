@@ -15,6 +15,7 @@ local function defaults()
             .. '/.vscode/extensions/marus25.cortex-debug-*/',
         lib_extension = nil,
         node_path = 'node',
+        dapui_rtt = true,
     }
 end
 

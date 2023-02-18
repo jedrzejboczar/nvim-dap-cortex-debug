@@ -20,7 +20,7 @@ An extension for [nvim-dap](https://github.com/mfussenegger/nvim-dap) providing 
 - [x] Raw Memory Viewer
 - [ ] Dissassembly viewer
 - [ ] RTOS support
-- [ ] Integration with [nvim-dap-ui](https://github.com/rcarriga/nvim-dap-ui) (requires minor changes in nvim-dap-ui)
+- [x] Integration with [nvim-dap-ui](https://github.com/rcarriga/nvim-dap-ui): RTT output
 
 ## Installation
 
@@ -60,6 +60,7 @@ require('dap-cortex-debug').setup {
         .. '/.vscode/extensions/marus25.cortex-debug-*/',
     lib_extension = nil, -- tries auto-detecting, e.g. 'so' on unix
     node_path = 'node', -- path to node.js executable
+    dapui_rtt = true, -- register nvim-dap-ui RTT element
 }
 ```
 
@@ -134,6 +135,26 @@ require('dap').configurations.c = {
 GDB server output can be seen in `cotex-debug://gdb-server-console` buffer. It is hidden by default,
 use `:buffer` or some buffer picker to open it. If RTT logging is enabled, a terminal buffer with
 the output will be opened (with the name `cortex-debug://rtt:PORT` where `PORT` is `rttConfig.decoders[i].port`).
+
+### DAP UI
+
+This extension registers custom DAP UI element `rtt` for viewing RTT channel output, e.g.
+
+```lua
+require('dapui').setup {
+    layouts = {
+        {
+            position = 'left',
+            size = 96,
+            elements = {
+                { id = 'scopes', size = 0.4 },
+                { id = 'rtt', size = 0.6 },
+            },
+        },
+        -- (...)
+    },
+}
+```
 
 ## Troubleshooting
 

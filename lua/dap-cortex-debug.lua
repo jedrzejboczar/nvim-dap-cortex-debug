@@ -40,6 +40,15 @@ function M.setup(opts)
             memory.show { address = address, length = length, id = o.count }
         end)()
     end, { desc = 'Open memory viewer', nargs = '+', range = 1 })
+
+    if config.dapui_rtt then
+        local ok, dapui = pcall(require, 'dapui')
+        if ok then
+            dapui.register_element('rtt', require('dap-cortex-debug.dapui.rtt'))
+        else
+            utils.warn_once('nvim-dap-ui not installed, cannot register RTT element')
+        end
+    end
 end
 
 ---@class RTTChannel

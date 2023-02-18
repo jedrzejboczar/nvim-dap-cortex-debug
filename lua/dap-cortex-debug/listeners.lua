@@ -66,8 +66,8 @@ function M.setup()
                 client:write(string.format('$$SEGGER_TELNET_ConfigStr=RTTCh;%d$$', body.decoder.port))
             end
 
-            -- Open the terminal in dapui if dapui has been opened.
-            require('dapui.elements.rtt').on_rtt_connect(body.decoder.port)
+            -- Notify our dapui element to update
+            require('dap-cortex-debug.dapui.rtt').on_rtt_connect(body.decoder.port)
 
             session:request('rtt-poll')
             term:scroll()

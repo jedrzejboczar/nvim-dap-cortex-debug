@@ -1,5 +1,6 @@
 local tcp = require('dap-cortex-debug.tcp')
 local utils = require('dap-cortex-debug.utils')
+local config = require('dap-cortex-debug.config')
 local Terminal = require('dap-cortex-debug.terminal')
 
 local M = {}
@@ -68,11 +69,12 @@ function M.gdb_server_console()
     return gdb_server_console
 end
 
-function M.rtt_term(channel)
+function M.rtt_term(channel, set_win)
+    local default_set_win = config.dapui_rtt and Terminal.temporary_win
+        or Terminal.open_in_split { size = 80, mods = 'vertical' }
     return Terminal.get_or_new {
         uri = string.format([[cortex-debug://rtt:%d]], channel),
-        -- set_win = Terminal.open_in_split { size = 22 },
-        set_win = Terminal.open_in_split { size = 80, mods = 'vertical' },
+        set_win = set_win or default_set_win,
     }
 end
 
