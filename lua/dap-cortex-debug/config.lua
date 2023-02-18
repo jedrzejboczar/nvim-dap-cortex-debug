@@ -1,5 +1,9 @@
 local M = {}
 
+local function is_windows()
+    return vim.fn.has('win32') == 1 or vim.fn.has('win64') == 1
+end
+
 -- Use a function to always get a new table, even if some deep field is modified,
 -- like `config.commands.save = ...`. Returning a "constant" still seems to allow
 -- the LSP completion to work.
@@ -7,7 +11,8 @@ local function defaults()
     -- stylua: ignore
     return {
         debug = false,
-        extension_path = '~/.vscode/extensions/marus25.cortex-debug-*/',
+        extension_path = (is_windows() and '$USERPROFILE' or '~')
+            .. '/.vscode/extensions/marus25.cortex-debug-*/',
         lib_extension = nil,
     }
 end
