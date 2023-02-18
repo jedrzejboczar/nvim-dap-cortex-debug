@@ -55,8 +55,11 @@ Available options (with default values):
 ```lua
 require('dap-cortex-debug').setup {
     debug = false,  -- log debug messages
-    extension_path = '~/.vscode/extensions/marus25.cortex-debug-*/', -- path to cortex-debug extension, supports vim.fn.glob
+    -- path to cortex-debug extension, supports vim.fn.glob
+    extension_path = (is_windows() and '$USERPROFILE' or '~')
+        .. '/.vscode/extensions/marus25.cortex-debug-*/',
     lib_extension = nil, -- tries auto-detecting, e.g. 'so' on unix
+    node_path = 'node', -- path to node.js executable
 }
 ```
 
