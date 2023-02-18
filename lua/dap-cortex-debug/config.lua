@@ -14,6 +14,7 @@ local function defaults()
         extension_path = (is_windows() and '$USERPROFILE' or '~')
             .. '/.vscode/extensions/marus25.cortex-debug-*/',
         lib_extension = nil,
+        node_path = 'node',
     }
 end
 

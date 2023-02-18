@@ -189,7 +189,7 @@ local function adapter_fn(callback, launch_config)
 
     callback {
         type = 'executable',
-        command = 'node',
+        command = config.node_path,
         args = { get_debugadapter_path(extension_path) },
         options = { detached = false },
         enrich_config = function(conf, on_config)
