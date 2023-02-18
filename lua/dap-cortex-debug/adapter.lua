@@ -173,6 +173,12 @@ local function verify_config(c)
     local verify = utils.assert(verifiers[c.servertype], 'Unsupported servertype: %s', c.servertype)
     c = verify(c)
 
+    if platform == 'windows' then
+        -- This is passed to GDB so must use forward slash instead of backslash
+        c.extensionPath = c.extensionPath:gsub([[\]], '/')
+        c.executable = c.executable:gsub([[\]], '/')
+    end
+
     return c
 end
 
