@@ -2,20 +2,6 @@ local config = require('dap-cortex-debug.config')
 local consoles = require('dap-cortex-debug.consoles')
 local utils = require('dap-cortex-debug.utils')
 
-local function get_extension_path()
-    local paths = vim.fn.glob(config.extension_path, false, true)
-    if paths and paths[1] then
-        return utils.path_sanitize(paths[1])
-    end
-    utils.warn_once('Missing cortex-debug extension_path')
-end
-
-local function get_debugadapter_path(extension_path)
-    -- TODO: does this solve Windows compatibility?
-    local paths = vim.fn.glob(extension_path .. '/dist/debugadapter.js', true, true)
-    return paths and utils.path_sanitize(paths[1])
-end
-
 local valid_rtos = {
     jlink = { 'Azure', 'ChibiOS', 'embOS', 'FreeRTOS', 'NuttX', 'Zephyr' },
     openocd = { 'ChibiOS', 'eCos', 'embKernel', 'FreeRTOS', 'mqx', 'nuttx', 'ThreadX', 'uCOS-III', 'auto' },
@@ -187,7 +173,10 @@ end
 ---@param launch_config table
 local function adapter_fn(callback, launch_config)
     -- Currently it's not strictly necessary to use functional variant, but we'll see...
-    local extension_path = launch_config.extensionPath or get_extension_path()
+    local extension_path = launch_config.extensionPath or utils.get_extension_path()
+    if not extension_path then
+        utils.error('Missing cortex-debug extension_path')
+    end
     launch_config.extensionPath = extension_path
 
     -- Ensure GDB server console has been started
@@ -196,7 +185,7 @@ local function adapter_fn(callback, launch_config)
     callback {
         type = 'executable',
         command = config.node_path,
-        args = { get_debugadapter_path(extension_path) },
+        args = { utils.get_debugadapter_path(extension_path) },
         options = { detached = false },
         enrich_config = function(conf, on_config)
             local ok, conf_or_err = utils.trace_pcall(verify_config, vim.deepcopy(conf))

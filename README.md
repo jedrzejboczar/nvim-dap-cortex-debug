@@ -135,6 +135,13 @@ GDB server output can be seen in `cotex-debug://gdb-server-console` buffer. It i
 use `:buffer` or some buffer picker to open it. If RTT logging is enabled, a terminal buffer with
 the output will be opened (with the name `cortex-debug://rtt:PORT` where `PORT` is `rttConfig.decoders[i].port`).
 
+## Troubleshooting
+
+To verify common problems run [checkhealth](https://neovim.io/doc/user/pi_health.html#pi_health.txt):
+```vim
+:checkhealth dap-cortex-debug
+```
+
 ## Implementation notes
 
 [cortex-debug](https://github.com/Marus/cortex-debug) implements

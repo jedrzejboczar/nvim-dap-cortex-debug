@@ -129,6 +129,23 @@ function M.get_lib_ext()
     return config.lib_extension or extensions[M.get_platform()]
 end
 
+--- Resolve and sanitize path to cortex-debug extension
+---@return string?
+function M.get_extension_path()
+    local paths = vim.fn.glob(config.extension_path, false, true)
+    if paths and paths[1] then
+        return M.path_sanitize(paths[1])
+    end
+end
+
+--- Resolve path to debugadapter.js
+---@param extension_path string
+---@return string
+function M.get_debugadapter_path(extension_path)
+    local paths = vim.fn.glob(extension_path .. '/dist/debugadapter.js', true, true)
+    return paths and M.path_sanitize(paths[1])
+end
+
 ---@class Class
 ---@field _new fun(cls: table, fields?: table): table Object constructor
 
