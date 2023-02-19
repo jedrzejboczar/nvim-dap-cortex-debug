@@ -17,6 +17,10 @@ function M.setup(opts)
     -- Could be a function(cb, config) to auto-generate docker command arguments
     dap.adapters['cortex-debug'] = adapter
 
+    if config.dap_vscode_filetypes then
+        require('dap.ext.vscode').type_to_filetypes['cortex-debug'] = config.dap_vscode_filetypes
+    end
+
     -- TODO: completion of variable names that maps them to address?
     -- TODO: handle mods for location of window
     vim.api.nvim_create_user_command('CDMemory', function(o)

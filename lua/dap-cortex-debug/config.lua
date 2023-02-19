@@ -16,6 +16,7 @@ local function defaults()
         lib_extension = nil,
         node_path = 'node',
         dapui_rtt = true,
+        dap_vscode_filetypes = { 'c', 'cpp' },
     }
 end
 
