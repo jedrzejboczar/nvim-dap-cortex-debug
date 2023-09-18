@@ -111,7 +111,7 @@ function M.setup()
         end
     end)
 
-    -- Cortex-debug sends a tooltips (multi-line info) under variable.type, e.g.
+    -- Cortex-debug sends tooltips (multi-line info) under variable.type, e.g.
     --   SystemCoreClock undefined SystemCoreClock;
     --   dec: 168000000
     --   hex: 0x0a037a00
@@ -149,6 +149,11 @@ function M.setup()
         if not response then
             return
         end
+        -- first remove all the vim.NIL values
+        response.variables = vim.tbl_filter(function (v)
+            return v ~= vim.NIL
+        end, response.variables)
+        -- then fix types
         for _, var in ipairs(response.variables or {}) do
             fix_variable_type(var)
         end
