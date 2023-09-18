@@ -4,16 +4,14 @@
 Table of Contents                         *dap-cortex-debug-table-of-contents*
 
 1. nvim-dap-cortex-debug              |dap-cortex-debug-nvim-dap-cortex-debug|
-  - Features                                       |dap-cortex-debug-features|
-  - Installation                               |dap-cortex-debug-installation|
-  - Configuration                             |dap-cortex-debug-configuration|
-  - Troubleshooting                         |dap-cortex-debug-troubleshooting|
-  - Implementation notes               |dap-cortex-debug-implementation-notes|
+  - Features                 |dap-cortex-debug-nvim-dap-cortex-debug-features|
+  - Installation         |dap-cortex-debug-nvim-dap-cortex-debug-installation|
+  - Configuration       |dap-cortex-debug-nvim-dap-cortex-debug-configuration|
+  - Troubleshooting   |dap-cortex-debug-nvim-dap-cortex-debug-troubleshooting|
+  - Implementation notes|dap-cortex-debug-nvim-dap-cortex-debug-implementation-notes|
 
-<img
-src='https://github.com/jedrzejboczar/nvim-dap-cortex-debug/actions/workflows/lint.yml/badge.svg'
-title=''/>
 <https://github.com/jedrzejboczar/nvim-dap-cortex-debug/actions/workflows/lint.yml>
+
 
 ==============================================================================
 1. nvim-dap-cortex-debug              *dap-cortex-debug-nvim-dap-cortex-debug*
@@ -27,9 +25,7 @@ integration with VS Code’s cortex-debug
   features may be missing, some APIs may change. Feel free to open issues for
   bugs/missing features (PRs welcome).
 
-
-FEATURES                                           *dap-cortex-debug-features*
-
+FEATURES                     *dap-cortex-debug-nvim-dap-cortex-debug-features*
 
 - ☒ Launch nvim-dap sessions using cortex-debug’s `launch.json`
 - ☒ Support J-Link and OpenOCD
@@ -45,15 +41,13 @@ FEATURES                                           *dap-cortex-debug-features*
 - ☒ Integration with nvim-dap-ui <https://github.com/rcarriga/nvim-dap-ui>: RTT output
 
 
-INSTALLATION                                   *dap-cortex-debug-installation*
+INSTALLATION             *dap-cortex-debug-nvim-dap-cortex-debug-installation*
 
 Requirements:
-
 
 - cortex-debug <https://github.com/Marus/cortex-debug>
 - node <https://nodejs.org/en/> (to start cortex-debug)
 - appropriate toolchain and debugger <https://github.com/Marus/cortex-debug#installation>
-
 
 To use this plugin you must first install cortex-debug
 <https://github.com/Marus/cortex-debug> VS Code extension. Simplest way is to
@@ -71,17 +65,17 @@ is located. In most cases the directory will be named
 
 Example using packer.nvim <https://github.com/wbthomason/packer.nvim>:
 
->
+>lua
     use { 'jedrzejboczar/nvim-dap-cortex-debug', requires = 'mfussenegger/nvim-dap' }
 <
 
 
-CONFIGURATION                                 *dap-cortex-debug-configuration*
+CONFIGURATION           *dap-cortex-debug-nvim-dap-cortex-debug-configuration*
 
 Call `require('dap-cortex-debug').setup { ... }` in your config. Available
 options (with default values):
 
->
+>lua
     require('dap-cortex-debug').setup {
         debug = false,  -- log debug messages
         -- path to cortex-debug extension, supports vim.fn.glob
@@ -90,9 +84,9 @@ options (with default values):
         lib_extension = nil, -- tries auto-detecting, e.g. 'so' on unix
         node_path = 'node', -- path to node.js executable
         dapui_rtt = true, -- register nvim-dap-ui RTT element
+        dap_vscode_filetypes = { 'c', 'cpp' }, -- make :DapLoadLaunchJSON register cortex-debug for C/C++, set false to disable
     }
 <
-
 
 This will configure nvim-dap adapter (i.e. assign to
 `dap.adapters['cortex-debug']`) and set up required nvim-dap listeners.
@@ -109,7 +103,7 @@ functions defined in dap-cortex-debug.lua
 which sets up some default values that get overwritten by the passed table,
 e.g.
 
->
+>lua
     local dap_cortex_debug = require('dap-cortex-debug')
     require('dap').configurations.c = {
         dap_cortex_debug.openocd_config {
@@ -124,12 +118,9 @@ e.g.
     }
 <
 
+which should be equivalent to the following: ~
 
-<summary style="cursor: pointer">
-
-which should be equivalent to the following:
-
->
+>lua
     local dap_cortex_debug = require('dap-cortex-debug')
     require('dap').configurations.c = {
         {
@@ -163,18 +154,18 @@ which should be equivalent to the following:
     }
 <
 
-
 GDB server output can be seen in `cotex-debug://gdb-server-console` buffer. It
 is hidden by default, use `:buffer` or some buffer picker to open it. If RTT
 logging is enabled, a terminal buffer with the output will be opened (with the
 name `cortex-debug://rtt:PORT` where `PORT` is `rttConfig.decoders[i].port`).
+
 
 DAP UI ~
 
 This extension registers custom DAP UI element `rtt` for viewing RTT channel
 output, e.g.
 
->
+>lua
     require('dapui').setup {
         layouts = {
             {
@@ -191,16 +182,16 @@ output, e.g.
 <
 
 
-TROUBLESHOOTING                             *dap-cortex-debug-troubleshooting*
+TROUBLESHOOTING       *dap-cortex-debug-nvim-dap-cortex-debug-troubleshooting*
 
 To verify common problems run |checkhealth|:
 
->
+>vim
     :checkhealth dap-cortex-debug
 <
 
 
-IMPLEMENTATION NOTES                   *dap-cortex-debug-implementation-notes*
+IMPLEMENTATION NOTES*dap-cortex-debug-nvim-dap-cortex-debug-implementation-notes*
 
 cortex-debug <https://github.com/Marus/cortex-debug> implements Debug Adapter
 Protocol <https://microsoft.github.io/debug-adapter-protocol/specification>
@@ -218,7 +209,6 @@ hood <https://github.com/Marus/cortex-debug/wiki/Cortex-Debug:-Under-the-hood>.
 
 This plugin tries to reimplement cortex-debug frontend. It:
 
-
 - takes the launch configuration, fills in missing keys, sets default values and checks config correctness;
     see `adapter.lua` (backend expects a complete configuration - no missing values)
 - starts a server to which the output from gdb-server will be sent; this output is displayed in a terminal buffer
@@ -227,9 +217,13 @@ This plugin tries to reimplement cortex-debug frontend. It:
 - hooks into nvim-dap event/command listeners to handle cortex-debug’s custom events and fix some existing
     incompatibilities
 
-
 Implementing a missing cortex-debug feature most likely requires implementing
 some of the custom events and displaying the output in Neovim buffers.
+
+==============================================================================
+2. Links                                              *dap-cortex-debug-links*
+
+1. *Lint*: https://github.com/jedrzejboczar/nvim-dap-cortex-debug/actions/workflows/lint.yml/badge.svg
 
 Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
 
