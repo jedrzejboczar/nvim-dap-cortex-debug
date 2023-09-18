@@ -150,7 +150,7 @@ function M.setup()
             return
         end
         -- first remove all the vim.NIL values
-        response.variables = vim.tbl_filter(function (v)
+        response.variables = vim.tbl_filter(function(v)
             return v ~= vim.NIL
         end, response.variables)
         -- then fix types

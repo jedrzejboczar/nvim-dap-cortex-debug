@@ -42,7 +42,7 @@ function Logfile:new(filename)
 end
 
 function Logfile:_open()
-    self.fd = vim.loop.fs_open(self.filename, "a", 438)
+    self.fd = vim.loop.fs_open(self.filename, 'a', 438)
     if not self.fd then
         utils.warn('Could not open logfile: %s', self.filename)
         return
@@ -50,7 +50,9 @@ function Logfile:_open()
 end
 
 function Logfile:write(data)
-    if not self.fd then return end
+    if not self.fd then
+        return
+    end
     local ok = vim.loop.fs_write(self.fd, data)
     if not ok then
         utils.warn_once('Writing to logfile failed: %s', self.filename)
@@ -58,7 +60,9 @@ function Logfile:write(data)
 end
 
 function Logfile:close()
-    if not self.fd then return end
+    if not self.fd then
+        return
+    end
     self:write(string.format('LOG END: %s\n', log_timestamp()))
     vim.loop.fs_close(self.fd)
 end
