@@ -56,18 +56,24 @@ function M.setup()
         assert(body and body.type == 'socket')
         assert(body.decoder.type == 'console')
 
-        consoles.rtt_connect(body.decoder.port, body.decoder.tcpPort, function(client, term)
+        local channel = body.decoder.port
+        local rtt_opts = {
+            channel = channel,
+            tcp_port = body.decoder.tcpPort,
+            logfile = body.decoder.logfile,
+        }
+        consoles.rtt_connect(rtt_opts, function(client, term)
             -- See: cortex-debug/src/frontend/swo/sources/socket.ts:123
             -- When the TCP connection to the RTT port is established, send config commands
             -- within 100ms to configure the RTT channel.  See
             -- https://wiki.segger.com/RTT#SEGGER_TELNET_Config_String for more information
             -- on the config string format.
             if session.config.servertype == 'jlink' then
-                client:write(string.format('$$SEGGER_TELNET_ConfigStr=RTTCh;%d$$', body.decoder.port))
+                client:write(string.format('$$SEGGER_TELNET_ConfigStr=RTTCh;%d$$', channel))
             end
 
             -- Notify our dapui element to update
-            require('dap-cortex-debug.dapui.rtt').on_rtt_connect(body.decoder.port)
+            require('dap-cortex-debug.dapui.rtt').on_rtt_connect(channel)
 
             session:request('rtt-poll')
             term:scroll()
@@ -95,8 +101,10 @@ function M.setup()
             session._cortex_debug_dummy = (session._cortex_debug_dummy or 0) + 1
             if session._cortex_debug_dummy <= 3 then
                 session.stopped_thread_id = nil
-                utils.debug('Re-requesting threads to fix dummy frame')
-                session:update_threads()
+                vim.defer_fn(function()
+                    utils.debug('Re-requesting threads to fix dummy frame')
+                    session:update_threads()
+                end, 50)
             else
                 utils.warn_once('Failed to update stack trace after 3 cortex-debug-dummy frames')
             end

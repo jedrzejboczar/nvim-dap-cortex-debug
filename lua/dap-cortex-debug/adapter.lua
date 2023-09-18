@@ -180,7 +180,7 @@ local function adapter_fn(callback, launch_config)
     launch_config.extensionPath = extension_path
 
     -- Ensure GDB server console has been started
-    local port = consoles.gdb_server_console().port
+    local port = consoles.gdb_server_console(launch_config.dbgServerLogfile).port
 
     callback {
         type = 'executable',
