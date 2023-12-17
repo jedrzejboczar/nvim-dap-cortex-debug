@@ -88,7 +88,13 @@ end
 function M.coroutine_resume()
     local co = assert(coroutine.running())
     return function(...)
-        coroutine.resume(co, ...)
+        local ret = { coroutine.resume(co, ...) }
+        -- Re-raise errors with correct traceback
+        local ok, err = unpack(ret)
+        if not ok then
+            error(debug.traceback(co, err))
+        end
+        return unpack(ret, 2)
     end
 end
 
