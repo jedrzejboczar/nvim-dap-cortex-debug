@@ -4,9 +4,6 @@
 
 An extension for [nvim-dap](https://github.com/mfussenegger/nvim-dap) providing integration with VS Code's [cortex-debug](https://github.com/Marus/cortex-debug) debug adapter.
 
-> 🚧 This is currently a work in progress. While it should be usable, some features may be missing,
-> some APIs may change. Feel free to open issues for bugs/missing features (PRs welcome).
-
 ## Features
 
 - [x] Launch nvim-dap sessions using cortex-debug's `launch.json`
@@ -21,6 +18,7 @@ An extension for [nvim-dap](https://github.com/mfussenegger/nvim-dap) providing 
 - [ ] Dissassembly viewer
 - [ ] RTOS support
 - [x] Integration with [nvim-dap-ui](https://github.com/rcarriga/nvim-dap-ui): RTT output
+- [x] Download cortex-debug with [mason.nvim](https://github.com/williamboman/mason.nvim)
 
 ## Installation
 
@@ -31,13 +29,17 @@ Requirements:
 * [appropriate toolchain and debugger](https://github.com/Marus/cortex-debug#installation)
 
 To use this plugin you must first install [cortex-debug](https://github.com/Marus/cortex-debug) VS Code extension.
-Simplest way is to install it from VS Code and point `extension_path` to appropriate location.
-Other options include downloading the extension from [releases](https://github.com/Marus/cortex-debug/releases)
-and unzipping the `.vsix` file (it is just a zip archive) or
-[cloning the repo and building from sources](https://github.com/Marus/cortex-debug#how-to-build-from-sources).
+There are a several options:
+
+* If you're using [mason.nvim](https://github.com/williamboman/mason.nvim) then just `:MasonInstall cortex-debug`
+* Install it in VS Code and point `extension_path` to appropriate location.
+* Download the extension from [releases](https://github.com/Marus/cortex-debug/releases) and unzip the `.vsix` file (it is just a zip archive)
+* [Clone the repo and build from sources](https://github.com/Marus/cortex-debug#how-to-build-from-sources).
 
 Make sure that the `extension_path` (see [Configuration](#configuration)) is correct.
-It should be the path to the directory in which `dist/debugadapter.js` is located.
+With the default value of `nil` nvim-dap-cortex-debug will try to detect the path from mason.nvim
+from the default VS Code extensions path.
+Otherwise configure it yourself - it should be the path to the directory in which `dist/debugadapter.js` is located.
 In most cases the directory will be named `marus25.cortex-debug-x.x.x` (so there should be a
 `marus25.cortex-debug-x.x.x/dist/debugadapter.js` file).
 
@@ -56,12 +58,13 @@ Available options (with default values):
 require('dap-cortex-debug').setup {
     debug = false,  -- log debug messages
     -- path to cortex-debug extension, supports vim.fn.glob
-    extension_path = (is_windows() and '$USERPROFILE' or '~')
-        .. '/.vscode/extensions/marus25.cortex-debug-*/',
-    lib_extension = nil, -- tries auto-detecting, e.g. 'so' on unix
+    -- by default tries to guess: mason.nvim or VSCode extensions
+    extension_path = nil,
+    lib_extension = nil, -- shared libraries extension, tries auto-detecting, e.g. 'so' on unix
     node_path = 'node', -- path to node.js executable
     dapui_rtt = true, -- register nvim-dap-ui RTT element
-    dap_vscode_filetypes = { 'c', 'cpp' }, -- make :DapLoadLaunchJSON register cortex-debug for C/C++, set false to disable
+    -- make :DapLoadLaunchJSON register cortex-debug for C/C++, set false to disable
+    dap_vscode_filetypes = { 'c', 'cpp' },
 }
 ```
 
