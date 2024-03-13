@@ -11,16 +11,19 @@ M.debug = true
 local function set_listener(when, name, handler)
     handler = handler or function() end
 
-    local log_handler = function(_session, ...)
+    local log_handler = function(...)
         local args = { ... }
         if debug then
             utils.debug('cortex-debug.%s.%s: %s', when, name, vim.inspect(args))
         end
     end
 
-    dap.listeners[when][name][PLUGIN] = function(...)
+    dap.listeners[when][name][PLUGIN] = function(session, ...)
+        if session.config.type ~= PLUGIN then
+            return
+        end
         log_handler(...)
-        return handler(...)
+        return handler(session, ...)
     end
 end
 
