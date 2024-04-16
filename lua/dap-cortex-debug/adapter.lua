@@ -127,6 +127,7 @@ local function verify_config(c)
 
     -- Ensure that following keys exist even if not provided or debug adapter may fail
     local defaults = {
+        cwd = vim.fn.getcwd(),
         debuggerArgs = {},
         swoConfig = { enabled = false, decoders = {}, cpuFrequency = 0, swoFrequency = 0, source = 'probe' },
         rttConfig = { enabled = false, decoders = {} },
