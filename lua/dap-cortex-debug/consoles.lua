@@ -176,8 +176,9 @@ function M.rtt_connect(opts, on_connected, on_client_connected)
     tcp.connect {
         host = '0.0.0.0',
         port = opts.tcp_port,
-        retries = 20,
-        delay = 250,
+        delay = 10,
+        delay_multiplier = 2,
+        delay_total_max = 5000,
         on_error = vim.schedule_wrap(function(err)
             utils.error('Failed to connect RTT:%d on TCP port %d: %s', opts.channel, opts.tcp_port, err)
         end),
