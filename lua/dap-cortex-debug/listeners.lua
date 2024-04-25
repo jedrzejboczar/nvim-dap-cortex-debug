@@ -65,7 +65,9 @@ function M.setup()
             tcp_port = body.decoder.tcpPort,
             logfile = body.decoder.logfile,
         }
-        consoles.rtt_connect(rtt_opts, function(client, term)
+
+        local start = vim.uv.hrtime()
+        local on_client_connected = function(client)
             -- See: cortex-debug/src/frontend/swo/sources/socket.ts:123
             -- When the TCP connection to the RTT port is established, send config commands
             -- within 100ms to configure the RTT channel.  See
@@ -73,14 +75,17 @@ function M.setup()
             -- on the config string format.
             if session.config.servertype == 'jlink' then
                 client:write(string.format('$$SEGGER_TELNET_ConfigStr=RTTCh;%d$$', channel))
+                utils.debug('sending jlink rtt channel request after %.6f ms', (vim.uv.hrtime() - start) / 1e6)
             end
+        end
 
+        consoles.rtt_connect(rtt_opts, function(client, term)
             -- Notify our dapui element to update
             require('dap-cortex-debug.dapui.rtt').on_rtt_connect(channel)
 
             session:request('rtt-poll')
             term:scroll()
-        end)
+        end, on_client_connected)
     end)
 
     before('event_record-event')

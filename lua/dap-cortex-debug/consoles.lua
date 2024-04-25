@@ -140,8 +140,9 @@ end
 
 ---@param opts dap-cortex-debug.RTTConnectOpts
 ---@param on_connected fun(client, term)
-function M.rtt_connect(opts, on_connected)
-    local on_connect = function(client)
+---@param on_client_connected? fun(client) raw client connection callback, without vim.schedule
+function M.rtt_connect(opts, on_connected, on_client_connected)
+    local on_connect = vim.schedule_wrap(function(client)
         local term = M.rtt_term(opts.channel)
         term:send_line(bold('Connected on port ' .. opts.tcp_port))
 
@@ -163,6 +164,13 @@ function M.rtt_connect(opts, on_connected)
         end)
 
         on_connected(client, term)
+    end)
+
+    local on_success = function(client)
+        if on_client_connected then
+            on_client_connected(client)
+        end
+        on_connect(client)
     end
 
     tcp.connect {
@@ -173,7 +181,7 @@ function M.rtt_connect(opts, on_connected)
         on_error = vim.schedule_wrap(function(err)
             utils.error('Failed to connect RTT:%d on TCP port %d: %s', opts.channel, opts.tcp_port, err)
         end),
-        on_success = vim.schedule_wrap(on_connect),
+        on_success = on_success,
     }
 end
 
