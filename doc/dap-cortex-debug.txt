@@ -9,6 +9,7 @@ Table of Contents                         *dap-cortex-debug-table-of-contents*
   - Configuration       |dap-cortex-debug-nvim-dap-cortex-debug-configuration|
   - Troubleshooting   |dap-cortex-debug-nvim-dap-cortex-debug-troubleshooting|
   - Implementation notes|dap-cortex-debug-nvim-dap-cortex-debug-implementation-notes|
+2. Links                                              |dap-cortex-debug-links|
 
 <https://github.com/jedrzejboczar/nvim-dap-cortex-debug/actions/workflows/lint.yml>
 
