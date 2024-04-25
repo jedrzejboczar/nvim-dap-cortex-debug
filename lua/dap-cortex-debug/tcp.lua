@@ -7,19 +7,28 @@ local localhost = '127.0.0.1'
 ---@class ConnectOpts
 ---@field host? string
 ---@field port number
----@field retries? number Maximum number of retries
----@field delay? number Delay in milliseconds between retries
+---@field retries? number Maximum number of retries (default 0 or math.huge if delay_total_max!=nil)
+---@field delay? number Delay in milliseconds between retriesa (default 100)
+---@field delay_multiplier? number Each subsequent delay is X times longer (default 1.0)
+---@field delay_max? number Max delay after multiplication
+---@field delay_total_max? number Max total delay, can be used limit by delay instead of retries
 ---@field on_success fun(client: userdata)
 ---@field on_error fun(err: string?)
 
 ---Connect to a server with retries
 ---@param opts ConnectOpts
 function M.connect(opts)
-    local attempts = (opts.retries or 0) + 1
-    local host = opts.host or localhost
-
-    local co = coroutine.create(function()
+    coroutine.wrap(function()
         local resume = utils.coroutine_resume()
+
+        local retries = opts.retries and opts.retries or (opts.delay_total_max and math.huge or 0)
+        local attempts = retries + 1
+        local host = opts.host or localhost
+        local delay = opts.delay or 100
+        local delay_mul = opts.delay_multiplier or 1.0
+        local delay_max = opts.delay_max or math.huge
+        local delay_total_max = opts.delay_total_max or math.huge
+        local delay_total = 0
 
         local err
         for attempt = 1, attempts do
@@ -35,15 +44,26 @@ function M.connect(opts)
             client:close()
 
             if attempt ~= attempts then
-                vim.defer_fn(resume, opts.delay)
+                -- check if the total time after sleeping would exceed the limit
+                delay_total = delay_total + delay
+                if delay_total > delay_total_max then
+                    break
+                end
+
+                vim.defer_fn(resume, delay)
                 coroutine.yield()
+
+                -- multiply and limit
+                delay = math.ceil(math.min(delay * delay_mul, delay_max))
+                -- make the last attempt exactly at delay_total_max
+                if delay_total ~= delay_total_max then
+                    delay = math.min(delay, delay_total_max - delay_total)
+                end
             end
         end
 
         opts.on_error(err)
-    end)
-
-    coroutine.resume(co)
+    end)()
 end
 
 ---@class ServeOpts
