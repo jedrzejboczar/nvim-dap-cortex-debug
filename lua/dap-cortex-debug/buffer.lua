@@ -46,9 +46,14 @@ function Buffer.get(uri)
     return buffers[uri]
 end
 
-function Buffer.get_or_new(opts)
-    return Buffer.get(opts.uri) or Buffer:new(opts)
+function Buffer._get_or_new(cls)
+    return function(opts)
+        return cls.get(opts.uri) or cls:new(opts)
+    end
 end
+
+--- Must be overwritten in deriving classes since this is a constructor
+Buffer.get_or_new = Buffer._get_or_new(Buffer)
 
 function Buffer:delete()
     pcall(vim.api.nvim_buf_delete, self.buf, { force = true })

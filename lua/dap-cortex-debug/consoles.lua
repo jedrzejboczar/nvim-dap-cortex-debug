@@ -1,17 +1,9 @@
 local tcp = require('dap-cortex-debug.tcp')
 local utils = require('dap-cortex-debug.utils')
 local config = require('dap-cortex-debug.config')
-local Terminal = require('dap-cortex-debug.terminal')
+local terminal = require('dap-cortex-debug.terminal')
 
 local M = {}
-
-local function bold(text)
-    return Terminal.display.bold .. text .. Terminal.display.clear
-end
-
-local function bold_error(text)
-    return Terminal.display.bold .. Terminal.display.fg.red .. text .. Terminal.display.clear
-end
 
 local gdb_server_console = {
     server = nil,
@@ -68,8 +60,8 @@ function Logfile:close()
 end
 
 function M.gdb_server_console_term()
-    return Terminal.get_or_new {
-        set_win = Terminal.temporary_win,
+    return terminal.Terminal.get_or_new {
+        set_win = terminal.Terminal.temporary_win,
         uri = [[cortex-debug://gdb-server-console]],
         on_delete = function()
             if gdb_server_console.server then
@@ -82,7 +74,7 @@ function M.gdb_server_console_term()
                 end
             end
         end,
-    }
+    } --[[@as CDTerminal]]
 end
 
 function M.gdb_server_console(logfile)
@@ -96,20 +88,20 @@ function M.gdb_server_console(logfile)
                 vim.schedule(function()
                     local term = M.gdb_server_console_term()
                     term:scroll()
-                    term:send_line(bold(string.format('Connected from %s:%d', sock_info.ip, sock_info.port)))
+                    term:send_line(string.format('Connected from %s:%d', sock_info.ip, sock_info.port), { bold = true })
 
                     local log = Logfile:new(logfile)
 
                     sock:read_start(function(err, data)
                         if err then
-                            term:send_line(bold_error('ERROR: ' .. err))
+                            term:send_line('ERROR: ' .. err, { bold = true, error = true })
                         elseif data then
                             log:write(data)
                             term:send(data)
                         else
                             sock:close()
                             log:close()
-                            term:send_line(bold('Disconnected\n'))
+                            term:send_line('Disconnected\n', { bold = true })
                         end
                     end)
                 end)
@@ -125,12 +117,13 @@ function M.gdb_server_console(logfile)
 end
 
 function M.rtt_term(channel, set_win)
-    local default_set_win = config.dapui_rtt and Terminal.temporary_win
-        or Terminal.open_in_split { size = 80, mods = 'vertical' }
-    return Terminal.get_or_new {
+    local Term = assert(terminal[config.rtt.buftype], 'Invalid value for rtt.buftype')
+    local default_set_win = config.dapui_rtt and Term.temporary_win
+        or Term.open_in_split { size = 80, mods = 'vertical' }
+    return Term.get_or_new {
         uri = string.format([[cortex-debug://rtt:%d]], channel),
         set_win = set_win or default_set_win,
-    }
+    } --[[@as CDTerminal]]
 end
 
 ---@class dap-cortex-debug.RTTConnectOpts
@@ -138,19 +131,29 @@ end
 ---@field tcp_port number
 ---@field logfile? string
 
+local function datetime()
+    return os.date('%H:%M:%S %Y-%m-%d')
+end
+
 ---@param opts dap-cortex-debug.RTTConnectOpts
 ---@param on_connected fun(client, term)
 ---@param on_client_connected? fun(client) raw client connection callback, without vim.schedule
 function M.rtt_connect(opts, on_connected, on_client_connected)
     local on_connect = vim.schedule_wrap(function(client)
         local term = M.rtt_term(opts.channel)
-        term:send_line(bold('Connected on port ' .. opts.tcp_port))
+
+        if getmetatable(term) == terminal.BufTerminal then
+            -- TODO: support more sessions but simulate 'scrollback'
+            term:clear() -- single session only
+        end
+
+        term:send_line(string.format('Connected on port %d at %s', opts.tcp_port, datetime()), { bold = true })
 
         local log = Logfile:new(opts.logfile)
 
         client:read_start(function(err, data)
             if err then
-                term:send_line(bold_error('ERROR: ' .. err))
+                term:send_line('ERROR: ' .. err, { bold = true, error = true })
             elseif data then
                 log:write(data)
                 term:send(data)
@@ -159,7 +162,7 @@ function M.rtt_connect(opts, on_connected, on_client_connected)
                 client:close()
                 log:close()
                 pcall(vim.api.nvim_buf_delete, term.buf, { force = true })
-                term:send_line(bold('Disconnected\n'))
+                term:send_line(string.format('Disconnected at %s\n', datetime()), { bold = true })
             end
         end)
 
