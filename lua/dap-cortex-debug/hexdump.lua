@@ -47,16 +47,17 @@ function HexDump:_update_fmt()
     }
 end
 
----@param bytes integer[]
+---@param data string
 ---@return string[]
-function HexDump:lines(bytes)
+function HexDump:lines(data)
+    vim.validate { data = { data, 'string' } }
     self:_update_fmt()
 
     local spaces = string.rep(' ', self.spaces)
     local lines = {}
     local row = 0
 
-    for chunk in utils.chunks(bytes, self.per_line) do
+    for chunk in utils.string_chunks(data, self.per_line) do
         local line = {}
 
         local addr = self.start_addr + row * self.per_line
@@ -67,13 +68,13 @@ function HexDump:lines(bytes)
         local nbytes = 0
         local word_i = 1
         local hex_len = 0
-        for word in utils.chunks(chunk, self.word_bytes) do
+        for word in utils.string_chunks(chunk, self.word_bytes) do
             nbytes = nbytes + #word
 
             if self.endianess == 'little' then
-                utils.reverse_in_place(word)
+                word = word:reverse()
             end
-            table.insert(line, string.format(self._fmt.word[1], unpack(word)))
+            table.insert(line, string.format(self._fmt.word[1], word:byte(1, #word)))
             hex_len = hex_len + self._fmt.word[2]
 
             if word_i ~= self:words_per_line() then -- no space after last word
@@ -93,7 +94,8 @@ function HexDump:lines(bytes)
         table.insert(line, spaces)
 
         -- Ascii section
-        for _, byte in ipairs(chunk) do
+        for i = 1, #chunk do
+            local byte = chunk:byte(i)
             table.insert(line, self:_printable(byte) and string.char(byte) or '.')
         end
 

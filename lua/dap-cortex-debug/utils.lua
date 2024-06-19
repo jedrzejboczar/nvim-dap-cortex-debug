@@ -199,8 +199,8 @@ end
 ---@generic T
 ---@param list T[]
 ---@param len integer
----@return function
-function M.chunks(list, len)
+---@return fun(): (T[])?
+function M.list_chunks(list, len)
     local head = 1
     local tail = len
     return function()
@@ -208,6 +208,25 @@ function M.chunks(list, len)
             return
         end
         local chunk = vim.list_slice(list, head, tail)
+        head = head + len
+        tail = tail + len
+        return chunk
+    end
+end
+
+--- Iterate over chunks of `s` with length `len`. Last chunk may be shorter.
+---@param s string
+---@param len integer
+---@return fun(): string?
+function M.string_chunks(s, len)
+    local slen = #s
+    local head = 1
+    local tail = len
+    return function()
+        if head > slen then
+            return
+        end
+        local chunk = s:sub(head, tail)
         head = head + len
         tail = tail + len
         return chunk
