@@ -59,6 +59,23 @@ function Buffer:delete()
     pcall(vim.api.nvim_buf_delete, self.buf, { force = true })
 end
 
+local function delete_buf_by_name(name)
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_get_name(buf) == name then
+            vim.api.nvim_buf_delete(buf, { force = true })
+            return
+        end
+    end
+end
+
+local function set_buf_name(buf, uri)
+    -- If the buffer already exists then it might e.g. have been restored by mksession - delete it
+    -- We do not care for buffers with our names matching our URI scheme that are not owned by us,
+    -- so delete forcefully.
+    delete_buf_by_name(uri)
+    vim.api.nvim_buf_set_name(buf, uri)
+end
+
 ---Set buffer URI
 ---@param uri Uri
 function Buffer:set_uri(uri)
@@ -67,7 +84,7 @@ function Buffer:set_uri(uri)
         return
     end
     -- TODO: set user friendly b:term_title?
-    vim.api.nvim_buf_set_name(self.buf, uri)
+    set_buf_name(self.buf, uri)
     buffers[self.uri] = nil
     self.uri = uri
     buffers[self.uri] = self
