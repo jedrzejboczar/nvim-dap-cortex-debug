@@ -59,6 +59,9 @@ function Terminal:send(data, opts)
             scol = #vim.api.nvim_buf_get_lines(self.buf, -2, -1, true)[1]
         end
 
+        -- check which windows need scroll before appending text
+        local to_scroll = vim.tbl_filter(cursor_at_end, vim.fn.win_findbuf(self.buf))
+
         vim.api.nvim_buf_set_text(self.buf, -1, -1, -1, -1, lines)
 
         if opts.bold or opts.error then
@@ -75,11 +78,11 @@ function Terminal:send(data, opts)
             end
         end
 
-        local win = vim.fn.bufwinid(self.buf)
-        if not vim.api.nvim_win_is_valid(win) then
-            self.needs_scroll = true
-        elseif cursor_at_end(win) then
-            self:scroll()
+        local nlines = vim.api.nvim_buf_line_count(self.buf)
+        self.needs_scroll = true
+        for _, win in ipairs(to_scroll) do
+            vim.api.nvim_win_set_cursor(win, { nlines, 0 })
+            self.needs_scroll = false
         end
     end)
 end

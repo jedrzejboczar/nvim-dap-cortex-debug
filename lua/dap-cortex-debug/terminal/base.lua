@@ -81,17 +81,17 @@ function Terminal:is_visible()
 end
 
 ---Scroll terminal to the end. Safe to call from |lua-loop-callbacks|.
-function Terminal:scroll()
+function Terminal:scroll(windows)
     utils.call_api(function()
         if not vim.api.nvim_buf_is_valid(self.buf) then
             return
         end
-        local win = vim.fn.bufwinid(self.buf) -- TODO: or scroll all windows?
-        if vim.api.nvim_win_is_valid(win) then
-            local nlines = vim.api.nvim_buf_line_count(self.buf)
+        -- scroll all windows
+        local nlines = vim.api.nvim_buf_line_count(self.buf)
+        self.needs_scroll = true
+        for _, win in ipairs(vim.fn.win_findbuf(self.buf)) do
             vim.api.nvim_win_set_cursor(win, { nlines, 0 })
-        else
-            self.needs_scroll = true
+            self.needs_scroll = false
         end
     end)
 end
