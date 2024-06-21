@@ -37,7 +37,7 @@ end
 ---Send data to terminal. Safe to call from |lua-loop-callbacks|.
 ---@param data string
 ---@param opts? CDTerminalSendOpts
-function Terminal:send(data, opts)
+function Terminal:_send(data, opts)
     opts = opts or {}
 
     data = data:gsub('\r\n', '\n')
