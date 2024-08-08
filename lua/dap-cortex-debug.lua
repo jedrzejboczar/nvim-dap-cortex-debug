@@ -5,6 +5,7 @@ local config = require('dap-cortex-debug.config')
 local listeners = require('dap-cortex-debug.listeners')
 local adapter = require('dap-cortex-debug.adapter')
 local memory = require('dap-cortex-debug.memory')
+local requests = require('dap-cortex-debug.requests')
 local utils = require('dap-cortex-debug.utils')
 
 function M.setup(opts)
@@ -21,29 +22,47 @@ function M.setup(opts)
         require('dap.ext.vscode').type_to_filetypes['cortex-debug'] = config.dap_vscode_filetypes
     end
 
+    local hex_mode_on = false
+    local function set_hex_mode(on)
+        hex_mode_on = on
+        requests.set_var_format(nil, { hex = hex_mode_on })
+    end
+    vim.api.nvim_create_user_command('CortexDebugVarHexModeOn', function()
+        set_hex_mode(true)
+    end, {})
+    vim.api.nvim_create_user_command('CortexDebugVarHexModeOff', function()
+        set_hex_mode(false)
+    end, {})
+    vim.api.nvim_create_user_command('CortexDebugVarHexModeToggle', function()
+        set_hex_mode(not hex_mode_on)
+    end, {})
+
     -- TODO: completion of variable names that maps them to address?
     -- TODO: handle mods for location of window
-    vim.api.nvim_create_user_command('CDMemory', function(o)
-        coroutine.wrap(function()
-            local address, length
-            if #o.fargs == 2 then
-                address = utils.assert(tonumber(o.fargs[1]), 'Incorrect `address`: %s', o.fargs[1])
-                length = utils.assert(tonumber(o.fargs[2]), 'Incorrect `length`: %s', o.fargs[1])
-            elseif #o.fargs == 1 then
-                local err, mem = memory.var_to_mem(o.fargs[1])
-                if err then
-                    utils.error('Error when evaluating "%s": %s', o.fargs[1], err.message or err)
+    -- Keep CDMemory name for backwards compatibility
+    for _, cmd_name in ipairs({'CDMemory', 'CortexDebugMemory'}) do
+        vim.api.nvim_create_user_command(cmd_name, function(o)
+            coroutine.wrap(function()
+                local address, length
+                if #o.fargs == 2 then
+                    address = utils.assert(tonumber(o.fargs[1]), 'Incorrect `address`: %s', o.fargs[1])
+                    length = utils.assert(tonumber(o.fargs[2]), 'Incorrect `length`: %s', o.fargs[1])
+                elseif #o.fargs == 1 then
+                    local err, mem = memory.var_to_mem(o.fargs[1])
+                    if err then
+                        utils.error('Error when evaluating "%s": %s', o.fargs[1], err.message or err)
+                        return
+                    end
+                    assert(mem ~= nil)
+                    address, length = mem.address, mem.length
+                else
+                    utils.error('Incorrect number of arguments')
                     return
                 end
-                assert(mem ~= nil)
-                address, length = mem.address, mem.length
-            else
-                utils.error('Incorrect number of arguments')
-                return
-            end
-            memory.show { address = address, length = length, id = o.count }
-        end)()
-    end, { desc = 'Open memory viewer', nargs = '+', range = 1 })
+                memory.show { address = address, length = length, id = o.count }
+            end)()
+        end, { desc = 'Open memory viewer', nargs = '+', range = 1 })
+    end
 
     if config.dapui_rtt then
         local ok, dapui = pcall(require, 'dapui')
