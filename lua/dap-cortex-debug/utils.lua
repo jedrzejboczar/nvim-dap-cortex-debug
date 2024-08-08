@@ -102,7 +102,7 @@ end
 --- Execute session request as sync call
 ---@param command string
 ---@param arguments? any
----@param session? Session
+---@param session? dap.Session
 ---@return table err
 ---@return any result
 function M.session_request(command, arguments, session)

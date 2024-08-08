@@ -27,7 +27,9 @@ local function set_listener(when, name, handler)
     end
 end
 
+---@type fun(when: string, cb?: fun(session: dap.Session, ...))
 local before = utils.bind(set_listener, 'before')
+---@type fun(when: string, cb?: fun(session: dap.Session, ...))
 local after = utils.bind(set_listener, 'after')
 
 -- Create handlers for cortex-debug custom events
@@ -111,7 +113,7 @@ function M.setup()
                 session.stopped_thread_id = nil
                 vim.defer_fn(function()
                     utils.debug('Re-requesting threads to fix dummy frame')
-                    session:update_threads()
+                    session:update_threads(function(_err) end)
                 end, 50)
             else
                 utils.warn_once('Failed to update stack trace after 3 cortex-debug-dummy frames')
