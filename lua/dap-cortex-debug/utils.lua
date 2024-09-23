@@ -14,6 +14,27 @@ function M.bind(fn, ...)
     end
 end
 
+-- Wrap `fn` caching the result of its call. It won't recompute
+-- `fn` unless `recompute_cond` returns true.
+function M.cached(fn, recompute_cond)
+    local cached
+    return function(...)
+        if cached == nil or recompute_cond(cached) then
+            cached = fn(...)
+            assert(cached ~= nil, 'cached: fn returned nil')
+        end
+        return cached
+    end
+end
+
+-- Lazily evaluate a function, caching the result of the first call
+-- for all subsequent calls ever.
+function M.lazy(fn)
+    return M.cached(fn, function()
+        return false
+    end)
+end
+
 local function logger(level, notify_fn, cond)
     return function(...)
         if cond and not cond() then

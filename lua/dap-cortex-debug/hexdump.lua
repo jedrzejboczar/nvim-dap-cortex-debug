@@ -47,10 +47,61 @@ function HexDump:_update_fmt()
     }
 end
 
----@param data string
+--- Given a range of values <left, right> where there is a breaking point at which criteria `test(x)` changes from
+--- returning false (left) to returning true (right), performs binary search to find that value.
+---@param left integer
+---@param right integer
+---@param test fun(val: integer): boolean
+---@return integer?
+local function binary_search(left, right, test)
+    assert(left <= right)
+    while left < right do
+        local mid = math.floor((left + right) /  2)
+        if test(mid) then
+            right = mid
+        else
+            left = mid + 1
+        end
+    end
+    return left
+end
+
+--- Get maximum number of values that can be passed to unpack() without an error.
+---@return integer
+local max_unpack_size = utils.lazy(function()
+    local min_estimate = 1
+    local max_estimate = 16 * 1024
+    local tbl = {}
+    local first_err = binary_search(min_estimate, max_estimate, function(n)
+        return not pcall(unpack, tbl, 1, n)
+    end)
+    assert(first_err and first_err > 1, 'Could not determine max number of arguments for unpack()')
+    return first_err - 1
+end)
+
+--- Optimized function for converting a list of bytes into a byte-string making use of large unpack() calls.
+---@param bytes integer[]
+---@return string
+local function bytes_to_string(bytes)
+    local max_chunk = max_unpack_size()
+    local taken, len = 0, #bytes
+    local parts = {}
+    while taken < len do
+        local chunk = math.min(max_chunk, len - taken)
+        table.insert(parts, string.char(unpack(bytes, taken + 1, taken + 1 + chunk - 1)))
+        taken = taken + chunk
+    end
+    return table.concat(parts)
+end
+
+---@param data string|integer[] prefer using byte-string instead of a list-table
 ---@return string[]
 function HexDump:lines(data)
-    vim.validate { data = { data, 'string' } }
+    vim.validate { data = { data, { 'string', 'table' } } }
+    if type(data) == 'table' then
+        data = bytes_to_string(data)
+    end
+
     self:_update_fmt()
 
     local spaces = string.rep(' ', self.spaces)
