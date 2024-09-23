@@ -7,7 +7,9 @@ local valid_rtos = {
     openocd = { 'ChibiOS', 'eCos', 'embKernel', 'FreeRTOS', 'mqx', 'nuttx', 'ThreadX', 'uCOS-III', 'auto' },
 }
 
-local function veirify_jlink_config(c)
+local verifiers = {}
+
+function verifiers.jlink(c)
     if not c.interface then
         c.interface = 'swd'
     end
@@ -59,9 +61,9 @@ local function veirify_jlink_config(c)
     return c
 end
 
-local function veirify_openocd_config(c)
+function verifiers.openocd(c)
     utils.assert(c.configFiles and #c.configFiles > 0, 'At least one OpenOCD Configuration File must be specified.')
-    c.searchDir = c.searchDir or {}
+    c.searchDir = c.searchDir or vim.empty_dict()
 
     if c.rtos then
         local valid = valid_rtos.openocd
@@ -76,10 +78,76 @@ local function veirify_openocd_config(c)
     return c
 end
 
-local verifiers = {
-    jlink = veirify_jlink_config,
-    openocd = veirify_openocd_config,
-}
+local function no_rtos(c, server_name)
+    utils.assert(not c.rtos, server_name .. ' GDB server does not support "rtos"')
+end
+
+local function no_swo(c, server_name)
+    if c.swoConfig and c.swoConfig.enabled and c.swoConfig.source == 'probe' then
+        utils.warn('SWO from "probe" not available when using %s GDB server. Disabling.', server_name)
+        c.swoConfig = { cpuFrequency = 0, enabled = false, ports = {}, swoFrequency = 0 };
+        c.graphConfig = {};
+    end
+end
+
+function verifiers.stutil(c)
+    no_rtos(c, 'ST-Util')
+    no_swo(c, 'ST-Util')
+end
+
+function verifiers.stlink(c)
+    no_rtos(c, 'ST-Link')
+    no_swo(c, 'ST-Link')
+end
+
+function verifiers.pyocd(c)
+    no_rtos(c, 'PyOCD')
+    if c.board and not c.boardId then
+        c.boardId = c.board
+    end
+    if c.target and not c.targetId then
+        c.targetId = c.target
+    end
+    return c
+end
+
+function verifiers.bmp(c)
+    utils.assert(c.BMPGDBSerialPort, '"BMPGDBSerialPort" is required for Black Magic Proble GDB server')
+    c.powerOverBMP = c.powerOverBMP or 'lastState'
+    c.interface = c.interface or 'swd'
+    c.targetId = c.targetId or 1
+    no_rtos(c, 'Black Magic Probe')
+    no_swo(c, 'Black Magic Probe')
+end
+
+function verifiers.pe(c)
+    utils.assert(not (c.configFiles and #c.configFiles > 1), 'Only one pegdbserver Configuration File is allowed')
+    utils.assert(c.device, 'Device Identifier is required for PE configurations. Check `pegdbserver_console.exe -devicelist`.')
+    utils.assert(not (c.swoConfig and c.swoConfig.enabled and c.swoConfig.source ~= 'socket'), 'The PE GDB Server Only supports socket type SWO')
+end
+
+function verifiers.external(c)
+    if c.swoConfig and c.swoConfig.enabled then
+        if c.swoConfig.source == 'socket' and not c.swoConfig.swoPort then
+            utils.warn('SWO source type "socket" requires "swoPort". Disabling SWO support.')
+            config.swoConfig = { enabled = false };
+            config.graphConfig = {};
+        elseif c.swoConfig.source ~= 'socket' and not c.swoConfig.swoPath then
+            utils.warn('SWO source type "%s" requires "swoPath". Disabling SWO support.', c.swoConfig.source)
+            config.swoConfig = { enabled = false };
+            config.graphConfig = {};
+        end
+    end
+    utils.assert(c.gdbTarget, 'External GDB server type must specify the GDB target. This should either be a "hostname:port" combination or a serial port.')
+end
+
+function verifiers.qemu(c)
+    c.cpu = c.cpu or 'cortex-m3'
+    c.machine = c.machine or 'lm3s6965evb'
+    no_rtos(c, 'QEMU')
+    no_swo(c, 'QEMU')
+    return c
+end
 
 local function sanitize_dev_debug(c)
     local modes = {
