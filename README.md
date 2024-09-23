@@ -65,6 +65,9 @@ require('dap-cortex-debug').setup {
     dapui_rtt = true, -- register nvim-dap-ui RTT element
     -- make :DapLoadLaunchJSON register cortex-debug for C/C++, set false to disable
     dap_vscode_filetypes = { 'c', 'cpp' },
+    rtt = {
+        buftype = 'Terminal', -- 'Terminal' or 'BufTerminal' for terminal buffer vs normal buffer
+    },
 }
 ```
 
