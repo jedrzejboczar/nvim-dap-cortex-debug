@@ -56,7 +56,7 @@ end
 local function binary_search(left, right, test)
     assert(left <= right)
     while left < right do
-        local mid = math.floor((left + right) /  2)
+        local mid = math.floor((left + right) / 2)
         if test(mid) then
             right = mid
         else

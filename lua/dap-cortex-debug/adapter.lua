@@ -85,8 +85,8 @@ end
 local function no_swo(c, server_name)
     if c.swoConfig and c.swoConfig.enabled and c.swoConfig.source == 'probe' then
         utils.warn('SWO from "probe" not available when using %s GDB server. Disabling.', server_name)
-        c.swoConfig = { cpuFrequency = 0, enabled = false, ports = {}, swoFrequency = 0 };
-        c.graphConfig = {};
+        c.swoConfig = { cpuFrequency = 0, enabled = false, ports = {}, swoFrequency = 0 }
+        c.graphConfig = {}
     end
 end
 
@@ -122,23 +122,32 @@ end
 
 function verifiers.pe(c)
     utils.assert(not (c.configFiles and #c.configFiles > 1), 'Only one pegdbserver Configuration File is allowed')
-    utils.assert(c.device, 'Device Identifier is required for PE configurations. Check `pegdbserver_console.exe -devicelist`.')
-    utils.assert(not (c.swoConfig and c.swoConfig.enabled and c.swoConfig.source ~= 'socket'), 'The PE GDB Server Only supports socket type SWO')
+    utils.assert(
+        c.device,
+        'Device Identifier is required for PE configurations. Check `pegdbserver_console.exe -devicelist`.'
+    )
+    utils.assert(
+        not (c.swoConfig and c.swoConfig.enabled and c.swoConfig.source ~= 'socket'),
+        'The PE GDB Server Only supports socket type SWO'
+    )
 end
 
 function verifiers.external(c)
     if c.swoConfig and c.swoConfig.enabled then
         if c.swoConfig.source == 'socket' and not c.swoConfig.swoPort then
             utils.warn('SWO source type "socket" requires "swoPort". Disabling SWO support.')
-            config.swoConfig = { enabled = false };
-            config.graphConfig = {};
+            config.swoConfig = { enabled = false }
+            config.graphConfig = {}
         elseif c.swoConfig.source ~= 'socket' and not c.swoConfig.swoPath then
             utils.warn('SWO source type "%s" requires "swoPath". Disabling SWO support.', c.swoConfig.source)
-            config.swoConfig = { enabled = false };
-            config.graphConfig = {};
+            config.swoConfig = { enabled = false }
+            config.graphConfig = {}
         end
     end
-    utils.assert(c.gdbTarget, 'External GDB server type must specify the GDB target. This should either be a "hostname:port" combination or a serial port.')
+    utils.assert(
+        c.gdbTarget,
+        'External GDB server type must specify the GDB target. This should either be a "hostname:port" combination or a serial port.'
+    )
 end
 
 function verifiers.qemu(c)

@@ -40,7 +40,7 @@ function M.setup(opts)
     -- TODO: completion of variable names that maps them to address?
     -- TODO: handle mods for location of window
     -- Keep CDMemory name for backwards compatibility
-    for _, cmd_name in ipairs({'CDMemory', 'CortexDebugMemory'}) do
+    for _, cmd_name in ipairs { 'CDMemory', 'CortexDebugMemory' } do
         vim.api.nvim_create_user_command(cmd_name, function(o)
             coroutine.wrap(function()
                 local address, length

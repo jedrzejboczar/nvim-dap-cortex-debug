@@ -30,8 +30,8 @@ end
 
 local function cursor_at_end(win)
     local api = vim.api
-    return api.nvim_win_is_valid(win) and
-        api.nvim_win_get_cursor(win)[1] == api.nvim_buf_line_count(api.nvim_win_get_buf(win))
+    return api.nvim_win_is_valid(win)
+        and api.nvim_win_get_cursor(win)[1] == api.nvim_buf_line_count(api.nvim_win_get_buf(win))
 end
 
 ---Send data to terminal. Safe to call from |lua-loop-callbacks|.
@@ -68,7 +68,13 @@ function Terminal:_send(data, opts)
             erow = vim.api.nvim_buf_line_count(self.buf) - 1
             ecol = #vim.api.nvim_buf_get_lines(self.buf, -2, -1, true)[1]
             local set_mark = function(hl_group)
-                vim.api.nvim_buf_set_extmark(self.buf, self.ns, srow, scol, { end_row = erow, end_col = ecol, hl_group = hl_group })
+                vim.api.nvim_buf_set_extmark(
+                    self.buf,
+                    self.ns,
+                    srow,
+                    scol,
+                    { end_row = erow, end_col = ecol, hl_group = hl_group }
+                )
             end
             if opts.bold then
                 set_mark('Bold')

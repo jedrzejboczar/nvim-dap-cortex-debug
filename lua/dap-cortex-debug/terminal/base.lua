@@ -30,7 +30,7 @@ local augroup = vim.api.nvim_create_augroup('CortexDebugTerminal', { clear = tru
 ---@param opts CDTerminalOpts
 ---@return CDTerminal
 function Terminal:new(opts, instance)
-    local term = Buffer:new(opts --[[@as CDBufferOpts]], instance or self:_new())  --[[@as CDTerminal]]
+    local term = Buffer:new(opts --[[@as CDBufferOpts]], instance or self:_new()) --[[@as CDTerminal]]
 
     term.needs_scroll = false
     term.on_input = opts.on_input
@@ -97,7 +97,7 @@ end
 ---@param data string
 ---@param opts? CDTerminalSendOpts
 function Terminal:send_line(data, opts)
-    return self:send(data, vim.tbl_extend('force', opts or {}, { newline = true}))
+    return self:send(data, vim.tbl_extend('force', opts or {}, { newline = true }))
 end
 
 function Terminal:is_visible()
@@ -121,7 +121,9 @@ function Terminal:scroll()
 end
 
 function Terminal:_commit_buffered()
-    if #self.line_buf == 0 then return end
+    if #self.line_buf == 0 then
+        return
+    end
     local line = table.concat(self.line_buf, '')
     if line ~= '' then
         self:_send(line)
@@ -155,7 +157,6 @@ function Terminal:_send_line_buffered(data, opts)
         end
     end
 end
-
 
 ---@type CDTerminal
 return Terminal
