@@ -63,7 +63,7 @@ end
 
 function verifiers.openocd(c)
     utils.assert(c.configFiles and #c.configFiles > 0, 'At least one OpenOCD Configuration File must be specified.')
-    c.searchDir = c.searchDir or vim.empty_dict()
+    c.searchDir = c.searchDir or {}
 
     if c.rtos then
         local valid = valid_rtos.openocd
