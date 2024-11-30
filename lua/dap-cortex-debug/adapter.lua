@@ -93,11 +93,13 @@ end
 function verifiers.stutil(c)
     no_rtos(c, 'ST-Util')
     no_swo(c, 'ST-Util')
+    return c
 end
 
 function verifiers.stlink(c)
     no_rtos(c, 'ST-Link')
     no_swo(c, 'ST-Link')
+    return c
 end
 
 function verifiers.pyocd(c)
@@ -118,6 +120,7 @@ function verifiers.bmp(c)
     c.targetId = c.targetId or 1
     no_rtos(c, 'Black Magic Probe')
     no_swo(c, 'Black Magic Probe')
+    return c
 end
 
 function verifiers.pe(c)
@@ -130,6 +133,8 @@ function verifiers.pe(c)
         not (c.swoConfig and c.swoConfig.enabled and c.swoConfig.source ~= 'socket'),
         'The PE GDB Server Only supports socket type SWO'
     )
+
+    return c
 end
 
 function verifiers.external(c)
@@ -148,6 +153,8 @@ function verifiers.external(c)
         c.gdbTarget,
         'External GDB server type must specify the GDB target. This should either be a "hostname:port" combination or a serial port.'
     )
+
+    return c
 end
 
 function verifiers.qemu(c)
