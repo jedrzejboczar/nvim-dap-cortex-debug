@@ -7,7 +7,7 @@ local function benchmark(cfg, fn, ...)
 
     local max_count = cfg.max_iterations - 1
     local min_time = cfg.min_time * 1e9
-    local end_time = vim.uv.hrtime() +  cfg.max_duration * 1e9
+    local end_time = vim.uv.hrtime() + cfg.max_duration * 1e9
     while vim.uv.hrtime() < end_time and (count < max_count or total_time < min_time) do
         collectgarbage('collect')
 
@@ -31,7 +31,7 @@ end
 
 local function human_size(size)
     local unit = 1
-    local units = {'', 'K', 'M', 'G'}
+    local units = { '', 'K', 'M', 'G' }
     while unit < #units and size >= 1000 do
         size = size / 1024
         unit = unit + 1
@@ -88,10 +88,7 @@ function impls.unpack(data)
     local parts = {}
     while got < n do
         local chunk = math.min(CHUNK, n - got)
-        table.insert(
-            parts,
-            string.char(unpack(data, got + 1, got + 1 + chunk - 1))
-        )
+        table.insert(parts, string.char(unpack(data, got + 1, got + 1 + chunk - 1)))
         got = got + chunk
     end
     return table.concat(parts)
@@ -123,10 +120,9 @@ end
 
 for count, input in pairs(inputs) do
     for impl, fn in pairs(impls) do
-        local name = table.concat({count, impl}, '.')
+        local name = table.concat({ count, impl }, '.')
         local result = benchmark(cfg, fn, input.data)
         table.insert(lines, '  ' .. summarize(name, input, result))
-
     end
 end
 

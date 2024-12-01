@@ -13,7 +13,7 @@ local function defaults()
         dapui_rtt = true,
         dap_vscode_filetypes = { 'c', 'cpp' },
         rtt = {
-            buftype = 'Terminal', -- 'Terminal' or 'BufTerminal' for terminal buffer vs normal buffer
+            buftype = 'Terminal',
         },
     }
 end

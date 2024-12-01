@@ -151,9 +151,9 @@ function verifiers.external(c)
     end
     utils.assert(
         c.gdbTarget,
-        'External GDB server type must specify the GDB target. This should either be a "hostname:port" combination or a serial port.'
+        'External GDB server type must specify the GDB target.'
+            .. ' This should either be a "hostname:port" combination or a serial port.'
     )
-
     return c
 end
 

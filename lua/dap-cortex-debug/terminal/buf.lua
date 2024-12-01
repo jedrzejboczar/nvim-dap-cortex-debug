@@ -20,7 +20,9 @@ end
 Terminal.get_or_new = Terminal._get_or_new(Terminal)
 
 function Terminal:_create_buf_final()
+    -- luacheck: push ignore 122
     vim.bo[self.buf].buftype = 'nofile'
+    -- luacheck: pop
 end
 
 function Terminal:clear()
