@@ -155,8 +155,10 @@ function M.rtt_connect(opts, on_connected, on_client_connected)
             if err then
                 term:send_line('ERROR: ' .. err, { bold = true, error = true })
             elseif data then
-                log:write(data)
-                term:send(data)
+                if #data > 0 then
+                    log:write(data)
+                    term:send(data)
+                end
             else
                 client:shutdown()
                 client:close()
